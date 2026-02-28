@@ -1,0 +1,49 @@
+# TimewGUI — Project Intelligence
+
+## Critical Implementation Paths
+- All `timew` CLI interactions go through `TimewCli.kt` — never call `timew` directly from UI code
+- All CLI methods return `Result<T>` — always handle both `onSuccess` and `onFailure`
+- After any mutation (delete, modify, tag, etc.), call `refreshIntervals()` on `TimelineViewModel`
+- ViewModels use `CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)` for UI-safe coroutine launching
+
+## Theme & Styling
+- The theme is "African Savanna" with warm earth tones, NOT the neutral gray/blue from the PRD
+- Custom colors are in `TimewColors`, accessed via `LocalTimewColors.current` — do NOT use Material3 `colorScheme` directly for custom tokens
+- Tag colors use 8 earth-tone slots defined in `Color.kt` (`TagColorPair` list)
+- Times and durations must always use monospace font (`TimewTypography.monospace`)
+- Timeline blocks use 0px border radius (sharp corners) — this is intentional for precision aesthetics
+- Dashboard banner is a custom Canvas drawing (savanna sunset) — not an image resource
+
+## Build & Run
+- Always use `make run` or `./gradlew run` to launch (foreground)
+- For agent UI verification: `make run-bg` → `make wait-window` → `make screenshot` → read `screenshots/latest.png`
+- Or use `make dev-feedback` for the full stop → start → wait → screenshot cycle
+- JAVA_HOME must point to OpenJDK 21 (set automatically by Makefile)
+- First launch may crash with MetalRedrawer error on macOS — just run again
+- Compilation takes ~1.5 min for full rebuild, ~12s for incremental
+
+## Known Gotchas
+- `kotlinx.datetime.Instant` is deprecated in favor of `kotlin.time.Instant` — new code should use `kotlin.time.Instant`
+- `Icons.Outlined.Label` is deprecated — use `Icons.AutoMirrored.Outlined.Label` instead
+- `compose.material3` dependency needs `@Suppress("DEPRECATION")` in build.gradle.kts
+- Dark mode `cardSurface` is warm off-white (#FFF5E8) — text on cards uses light-mode text colors for contrast
+- No test infrastructure exists yet — when adding tests, use `src/test/kotlin/`
+- App icons (icns/png/ico) don't exist yet — packaging targets will fail until created
+- `JAVA_TOOL_OPTIONS` env var is NOT visible in process command line — use `-PinstanceId=` Gradle property instead for `pgrep -f` matching
+- Python 3.14 on macOS enforces PEP 668 — always use `.dev/venv/` for pip installs, never `--break-system-packages`
+- `screencapture` requires Screen Recording permission for the calling app (Cursor) — one-time macOS grant via System Settings
+
+## User Preferences
+- The sidebar branding is "TimeTrackAI" (not "TimewGUI")
+- Design language emphasizes warmth and earth tones over clinical precision
+- Information density is valued — avoid unnecessary whitespace or decorative elements
+- Canvas-based rendering preferred for timeline visualizations (better performance and control)
+
+## File Organization
+- Domain logic: `domain/` (model + CLI)
+- UI state: `viewmodel/`
+- UI rendering: `ui/` (theme, components, screens, navigation)
+- Each screen in `ui/screens/` connects components to ViewModels
+- Reusable composables in `ui/components/`
+- Dev tooling: `scripts/` (dev-screenshot.sh), `.dev/` (runtime state), `screenshots/` (captured images)
+- Agent rules: `.cursor/rules/` (dev-feedback-loop.mdc)

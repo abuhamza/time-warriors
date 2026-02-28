@@ -1,0 +1,129 @@
+package com.timewgui.viewmodel
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.timewgui.domain.cli.TimewCli
+import com.timewgui.domain.model.Task
+import com.timewgui.domain.model.TaskStatus
+import com.timewgui.domain.repository.TaskRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlin.time.Duration
+
+class TaskViewModel(
+    private val taskRepository: TaskRepository,
+    private val timewCli: TimewCli,
+    private val onError: (String) -> Unit = {}
+) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    var tasks: List<Task> by mutableStateOf(emptyList())
+        private set
+    var timePerTask: Map<String, Duration> by mutableStateOf(emptyMap())
+        private set
+    var isLoadingTime: Boolean by mutableStateOf(false)
+        private set
+
+    init {
+        loadTasks()
+    }
+
+    private fun loadTasks() {
+        tasks = taskRepository.load()
+    }
+
+    fun createTask(title: String, contextTags: List<String>) {
+        val tag = taskRepository.generateTag(title)
+        val task = Task(
+            id = java.util.UUID.randomUUID().toString(),
+            title = title,
+            tag = tag,
+            contextTags = contextTags,
+            status = TaskStatus.TODO,
+            createdAt = System.currentTimeMillis(),
+            completedAt = null,
+            sortOrder = tasks.size
+        )
+        tasks = tasks + task
+        saveTasks()
+    }
+
+    fun updateTask(task: Task) {
+        tasks = tasks.map { if (it.id == task.id) task else it }
+        saveTasks()
+    }
+
+    fun updateStatus(taskId: String, status: TaskStatus) {
+        tasks = tasks.map { task ->
+            if (task.id == taskId) {
+                when (status) {
+                    TaskStatus.DONE -> task.copy(
+                        status = status,
+                        completedAt = System.currentTimeMillis()
+                    )
+                    TaskStatus.IN_PROGRESS -> task.copy(
+                        status = status,
+                        completedAt = null
+                    )
+                    else -> task.copy(status = status)
+                }
+            } else {
+                task
+            }
+        }
+        saveTasks()
+    }
+
+    fun deleteTask(taskId: String) {
+        tasks = tasks.filter { it.id != taskId }
+        saveTasks()
+    }
+
+    fun startTimerForTask(task: Task, timerViewModel: TimerViewModel) {
+        val allTags = task.contextTags + task.tag
+        if (task.status == TaskStatus.TODO) {
+            updateStatus(task.id, TaskStatus.IN_PROGRESS)
+        }
+        scope.launch {
+            timewCli.start(tags = allTags)
+                .onSuccess {
+                    timerViewModel.refreshActiveState()
+                }
+                .onFailure { e ->
+                    onError(e.message ?: "Failed to start timer for task")
+                }
+        }
+    }
+
+    fun refreshTimeAggregation() {
+        isLoadingTime = true
+        scope.launch {
+            timewCli.exportIntervals()
+                .onSuccess { intervals ->
+                    val taskTags = tasks.associate { it.tag to it.id }
+                    val aggregated = mutableMapOf<String, Duration>()
+                    for (interval in intervals) {
+                        for (intervalTag in interval.tags) {
+                            val matchedTag = taskTags.keys.find { it == intervalTag }
+                            if (matchedTag != null) {
+                                aggregated[matchedTag] = (aggregated[matchedTag] ?: Duration.ZERO) + interval.duration
+                            }
+                        }
+                    }
+                    timePerTask = aggregated
+                    isLoadingTime = false
+                }
+                .onFailure { e ->
+                    onError(e.message ?: "Failed to load time aggregation")
+                    isLoadingTime = false
+                }
+        }
+    }
+
+    private fun saveTasks() {
+        taskRepository.save(tasks)
+    }
+}

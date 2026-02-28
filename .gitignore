@@ -1,0 +1,22 @@
+# Build
+build/
+out/
+.gradle/
+.kotlin/
+
+# Dev feedback loop
+.dev/
+screenshots/*
+!screenshots/.gitkeep
+screenshots/history/*
+!screenshots/history/.gitkeep
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store

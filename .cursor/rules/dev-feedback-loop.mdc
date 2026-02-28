@@ -1,0 +1,76 @@
+---
+description: Autonomous UI feedback loop for verifying visual changes
+globs: src/main/kotlin/**/*.kt
+alwaysApply: false
+---
+
+# Dev Feedback Loop
+
+After any UI-affecting code change, use this workflow to visually verify the result.
+
+## Quick Reference
+
+```bash
+make run-bg          # Start app in background (writes .dev/app.pid)
+make wait-window     # Poll until the app window appears (up to 60s)
+make screenshot      # Capture the app window → screenshots/latest.png
+make stop            # Kill the tracked instance and clean up .dev/
+make dev-feedback    # All-in-one: stop → run-bg → wait-window → screenshot
+```
+
+## Full Workflow
+
+1. **Start the app** (skip if already running):
+   ```
+   Shell: make run-bg
+   ```
+   Wait for output confirming the PID was detected.
+
+2. **Wait for the window**:
+   ```
+   Shell: make wait-window
+   ```
+   This polls every 2s for up to 60s until the Compose window exists.
+
+3. **Take a screenshot**:
+   ```
+   Shell: make screenshot
+   ```
+   Saves to `screenshots/latest.png` and `screenshots/history/<timestamp>.png`.
+
+4. **Read and analyze the screenshot**:
+   ```
+   Read: screenshots/latest.png
+   ```
+   Cursor's Read tool natively renders PNG images for visual inspection.
+
+5. **If changes are needed**: stop, edit code, and repeat:
+   ```
+   Shell: make stop
+   ```
+   Then edit code and go back to step 1.
+
+## Iteration Comparison
+
+Previous screenshots are kept in `screenshots/history/`. To compare before
+and after, read both the current `latest.png` and the relevant history file.
+
+## One-Time Setup: Screen Recording Permission
+
+The screenshot step requires macOS Screen Recording permission for Cursor.
+If `make screenshot` fails with "Screen Recording permission required", tell the
+user to grant it:
+
+> System Settings → Privacy & Security → Screen Recording → enable **Cursor**
+
+The script will auto-open System Settings on first failure. After granting,
+Cursor may need a restart.
+
+## Important Notes
+
+- `make run-bg` uses instance stamping — it only tracks/kills the exact JVM
+  process it started, so it is safe even if other Java processes are running.
+- First launch after a full rebuild takes ~1.5 min; incremental ~12s.
+- The first run on macOS may crash with a MetalRedrawer error — just run again.
+- If `make wait-window` times out, check `.dev/app.log` for startup errors.
+- The Quartz Python dependency is auto-installed in `.dev/venv/` on first use.
