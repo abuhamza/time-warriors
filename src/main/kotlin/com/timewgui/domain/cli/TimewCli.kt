@@ -14,9 +14,20 @@ import java.util.concurrent.TimeUnit
  * This is the ONLY way the app communicates with Timewarrior.
  */
 open class TimewCli(
-    private val timewCommand: String = "timew",
+    private val timewCommand: String = resolveTimewPath(),
     private val workingDirectory: File? = null
 ) {
+    companion object {
+        fun resolveTimewPath(): String {
+            val candidates = listOf(
+                "/opt/homebrew/bin/timew",      // macOS ARM Homebrew
+                "/usr/local/bin/timew",          // macOS Intel Homebrew / Linux
+                "/usr/bin/timew",                // Linux system package
+                "/snap/bin/timew",               // Linux snap
+            )
+            return candidates.firstOrNull { File(it).canExecute() } ?: "timew"
+        }
+    }
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
