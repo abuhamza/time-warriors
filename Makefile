@@ -4,9 +4,15 @@ export PATH := $(JAVA_HOME)/bin:$(PATH)
 
 DEV_DIR    := .dev
 SCRIPT_DIR := scripts
+VERSION    := $(shell grep '^appVersion=' gradle.properties | cut -d= -f2)
+DMG_PATH   := build/compose/binaries/main/dmg/TimewGUI-$(VERSION).dmg
 
-.PHONY: run build compile clean package-dmg package-deb package-msi \
-        run-bg stop wait-window screenshot dev-feedback help
+.PHONY: run build compile clean test package-dmg package-deb package-msi \
+        run-bg stop wait-window screenshot dev-feedback \
+        release version help
+
+test: ## Run all tests
+	./gradlew test
 
 run: ## Start the application (foreground)
 	./gradlew run
@@ -81,6 +87,25 @@ package-deb: ## Package as Linux .deb
 
 package-msi: ## Package as Windows .msi
 	./gradlew packageMsi
+
+version: ## Print current version
+	@echo "$(VERSION)"
+
+release: ## Build DMG and create a GitHub release (usage: make release)
+	@echo "=== Building TimewGUI v$(VERSION) ==="
+	$(MAKE) package-dmg
+	@if [ ! -f "$(DMG_PATH)" ]; then \
+		echo "ERROR: DMG not found at $(DMG_PATH)"; \
+		echo "Looking for DMG..."; \
+		find build/compose/binaries -name "*.dmg" 2>/dev/null; \
+		exit 1; \
+	fi
+	@echo "=== Creating GitHub release v$(VERSION) ==="
+	gh release create "v$(VERSION)" "$(DMG_PATH)" \
+		--title "TimewGUI v$(VERSION)" \
+		--generate-notes
+	@echo "=== Release v$(VERSION) published ==="
+	@echo "https://github.com/$$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/v$(VERSION)"
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
  * CLI integration service that wraps all `timew` commands.
  * This is the ONLY way the app communicates with Timewarrior.
  */
-class TimewCli(
+open class TimewCli(
     private val timewCommand: String = "timew",
     private val workingDirectory: File? = null
 ) {
@@ -120,7 +120,7 @@ class TimewCli(
     suspend fun annotate(id: Int, annotation: String): Result<Unit> =
         execute("annotate", "@$id", annotation).map { }
 
-    suspend fun exportIntervals(range: String? = null, tags: List<String> = emptyList()): Result<List<Interval>> =
+    open suspend fun exportIntervals(range: String? = null, tags: List<String> = emptyList()): Result<List<Interval>> =
         withContext(Dispatchers.IO) {
             val args = mutableListOf<String>()
             range?.let { args.addAll(it.split(" ")) }

@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.timewgui.ui.components.IntervalList
 import com.timewgui.ui.theme.LocalTimewColors
@@ -120,15 +121,16 @@ fun TagsScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(displayedTags) { tag ->
+                        val isSelected = selectedTag == tag
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (selectedTag == tag) colors.accent.copy(alpha = 0.15f)
+                                    if (isSelected) lerp(colors.cardSurface, colors.accent, 0.15f)
                                     else colors.cardSurface
                                 )
-                                .clickable { selectedTagState.value = if (selectedTag == tag) null else tag }
+                                .clickable { selectedTagState.value = if (isSelected) null else tag }
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -142,7 +144,7 @@ fun TagsScreen(
                             Text(
                                 text = tag,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = colors.textOnCardPrimary
+                                color = if (isSelected) colors.accent else colors.textOnCardPrimary
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             IconButton(

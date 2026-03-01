@@ -75,6 +75,17 @@ class TimelineViewModel(
         scope.launch { refreshIntervals() }
     }
 
+    fun fetchForRange(start: LocalDate, end: LocalDate) {
+        scope.launch {
+            isLoading = true
+            val rangeEnd = end.plus(DatePeriod(days = 1))
+            timewCli.exportIntervals(range = "$start - $rangeEnd", tags = emptyList())
+                .onSuccess { intervals = it }
+                .onFailure { e -> onError(e.message ?: "Failed to load intervals") }
+            isLoading = false
+        }
+    }
+
     fun refreshIntervals() {
         scope.launch {
             isLoading = true

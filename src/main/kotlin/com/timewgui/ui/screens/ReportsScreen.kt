@@ -33,7 +33,6 @@ import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
 import com.timewgui.ui.theme.TimewTypography
 import com.timewgui.viewmodel.TimelineViewModel
-import com.timewgui.viewmodel.ViewMode
 import kotlin.time.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -95,11 +94,7 @@ fun ReportsScreen(
     }
 
     LaunchedEffect(range) {
-        timelineViewModel.jumpToDate(startDate)
-        when (range) {
-            is ReportRange.Today -> timelineViewModel.switchViewMode(ViewMode.DAY)
-            else -> timelineViewModel.switchViewMode(ViewMode.WEEK)
-        }
+        timelineViewModel.fetchForRange(startDate, endDate)
     }
 
     Column(

@@ -1,19 +1,34 @@
 package com.timewgui.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
@@ -30,13 +45,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.timewgui.domain.model.ExcludedDateRange
+import com.timewgui.domain.model.ExclusionSource
 import com.timewgui.domain.system.LaunchAtLogin
 import com.timewgui.ui.components.TagSelector
 import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
 import com.timewgui.viewmodel.AppState
+import com.timewgui.viewmodel.OvertimeViewModel
 import com.timewgui.viewmodel.TagViewModel
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 enum class ThemePreference {
     SYSTEM,
@@ -48,6 +70,7 @@ enum class ThemePreference {
 fun SettingsScreen(
     appState: AppState,
     tagViewModel: TagViewModel,
+    overtimeViewModel: OvertimeViewModel,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalTimewColors.current
@@ -279,7 +302,7 @@ fun SettingsScreen(
             )
         }
 
-        // Daily target card
+        // Time targets card
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -288,19 +311,360 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Daily target",
+                text = "Time Targets",
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textOnCardPrimary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
-            Text(
-                text = "8h (placeholder)",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.textOnCardSecondary
-            )
+
+            // Daily target
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Daily target",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                var dailyText by remember(appState.dailyTargetHours) {
+                    mutableStateOf(appState.dailyTargetHours.toString())
+                }
+                OutlinedTextField(
+                    value = dailyText,
+                    onValueChange = { value ->
+                        dailyText = value.filter { it.isDigit() }
+                        dailyText.toIntOrNull()?.let { appState.updateDailyTargetHours(it) }
+                    },
+                    modifier = Modifier.width(72.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.borderOnCard,
+                        cursorColor = colors.accent
+                    )
+                )
+                Text(
+                    text = "hours",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Weekly target
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Weekly target",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                var weeklyText by remember(appState.weeklyTargetHours) {
+                    mutableStateOf(appState.weeklyTargetHours.toString())
+                }
+                OutlinedTextField(
+                    value = weeklyText,
+                    onValueChange = { value ->
+                        weeklyText = value.filter { it.isDigit() }
+                        weeklyText.toIntOrNull()?.let { appState.updateWeeklyTargetHours(it) }
+                    },
+                    modifier = Modifier.width(72.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.borderOnCard,
+                        cursorColor = colors.accent
+                    )
+                )
+                Text(
+                    text = "hours",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Overtime tracking toggle
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Overtime tracking",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textOnCardPrimary
+                    )
+                    Text(
+                        text = "Track hours worked beyond the daily target as overtime balance",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textOnCardSecondary
+                    )
+                }
+                Switch(
+                    checked = appState.overtimeEnabled,
+                    onCheckedChange = { appState.updateOvertimeEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = colors.cardSurface,
+                        checkedTrackColor = colors.accent,
+                        uncheckedThumbColor = colors.textOnCardTertiary,
+                        uncheckedTrackColor = colors.borderOnCard
+                    )
+                )
+            }
+
+            if (appState.overtimeEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Start date
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Start date",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textOnCardPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    var startDateText by remember(appState.overtimeStartDate) {
+                        mutableStateOf(appState.overtimeStartDate.toString())
+                    }
+                    var startDateError by remember { mutableStateOf(false) }
+                    OutlinedTextField(
+                        value = startDateText,
+                        onValueChange = { value ->
+                            startDateText = value
+                            val parsed = runCatching { LocalDate.parse(value) }
+                            if (parsed.isSuccess) {
+                                appState.updateOvertimeStartDate(parsed.getOrThrow())
+                                startDateError = false
+                            } else {
+                                startDateError = true
+                            }
+                        },
+                        modifier = Modifier.width(140.dp),
+                        singleLine = true,
+                        isError = startDateError,
+                        placeholder = {
+                            Text(
+                                text = "YYYY-MM-DD",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.textOnCardTertiary
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.borderOnCard,
+                            errorBorderColor = colors.destructive,
+                            cursorColor = colors.accent
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Workday chips
+                Text(
+                    text = "Workdays",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardPrimary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+                    DayOfWeek.entries.forEachIndexed { index, day ->
+                        val isSelected = day in appState.workdays
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) colors.accent else colors.borderOnCard.copy(alpha = 0.3f))
+                                .clickable {
+                                    val updated = if (isSelected) {
+                                        appState.workdays - day
+                                    } else {
+                                        appState.workdays + day
+                                    }
+                                    appState.updateWorkdays(updated)
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = dayLabels[index],
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) androidx.compose.ui.graphics.Color.White else colors.textOnCardPrimary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                // Excluded Days section
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Excluded Days",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textOnCardPrimary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "Vacation, holidays, and other non-work days excluded from overtime calculation",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textOnCardSecondary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // Existing excluded ranges
+                appState.excludedDateRanges.forEach { range ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                    ) {
+                        val sourceIcon = if (range.source == ExclusionSource.ABSENCE_IO) {
+                            Icons.Outlined.Cloud
+                        } else {
+                            Icons.Outlined.Edit
+                        }
+                        Icon(
+                            imageVector = sourceIcon,
+                            contentDescription = range.source.name,
+                            tint = colors.textOnCardTertiary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        val dateText = if (range.start == range.end) {
+                            range.start.toString()
+                        } else {
+                            "${range.start} - ${range.end}"
+                        }
+                        Text(
+                            text = dateText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textOnCardPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (range.label.isNotBlank()) {
+                            Text(
+                                text = range.label,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.textOnCardSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                appState.removeExcludedDateRange(range)
+                                overtimeViewModel.refresh()
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Close,
+                                contentDescription = "Remove",
+                                tint = colors.destructive,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Add new excluded range
+                Spacer(modifier = Modifier.height(8.dp))
+                var newStartText by remember { mutableStateOf("") }
+                var newEndText by remember { mutableStateOf("") }
+                var newLabel by remember { mutableStateOf("") }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = newStartText,
+                        onValueChange = { newStartText = it },
+                        modifier = Modifier.width(120.dp),
+                        singleLine = true,
+                        placeholder = {
+                            Text("Start", style = MaterialTheme.typography.bodySmall, color = colors.textOnCardTertiary)
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall.copy(color = colors.textOnCardPrimary),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.borderOnCard,
+                            cursorColor = colors.accent
+                        )
+                    )
+                    OutlinedTextField(
+                        value = newEndText,
+                        onValueChange = { newEndText = it },
+                        modifier = Modifier.width(120.dp),
+                        singleLine = true,
+                        placeholder = {
+                            Text("End", style = MaterialTheme.typography.bodySmall, color = colors.textOnCardTertiary)
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall.copy(color = colors.textOnCardPrimary),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.borderOnCard,
+                            cursorColor = colors.accent
+                        )
+                    )
+                    OutlinedTextField(
+                        value = newLabel,
+                        onValueChange = { newLabel = it },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        placeholder = {
+                            Text("Label", style = MaterialTheme.typography.bodySmall, color = colors.textOnCardTertiary)
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall.copy(color = colors.textOnCardPrimary),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = colors.accent,
+                            unfocusedBorderColor = colors.borderOnCard,
+                            cursorColor = colors.accent
+                        )
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            val start = runCatching { LocalDate.parse(newStartText) }.getOrNull()
+                            val end = runCatching { LocalDate.parse(newEndText.ifBlank { newStartText }) }.getOrNull()
+                            if (start != null && end != null) {
+                                appState.addExcludedDateRange(
+                                    ExcludedDateRange(start = start, end = end, label = newLabel)
+                                )
+                                overtimeViewModel.refresh()
+                                newStartText = ""
+                                newEndText = ""
+                                newLabel = ""
+                            }
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.accent)
+                    ) {
+                        Text("Add", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         }
 
-        // Weekly target card
+        // absence.io Integration card
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -309,37 +673,157 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Weekly target",
+                text = "absence.io Integration",
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textOnCardPrimary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
-            Text(
-                text = "40h (placeholder)",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.textOnCardSecondary
-            )
-        }
 
-        // Working hours card
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(TimewDimensions.borderRadiusCard))
-                .background(colors.cardSurface)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Working hours",
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.textOnCardPrimary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Coming soon",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.textOnCardSecondary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Auto-import absences",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.textOnCardPrimary
+                    )
+                    Text(
+                        text = "Sync approved absences from absence.io as excluded days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.textOnCardSecondary
+                    )
+                }
+                Switch(
+                    checked = appState.absenceIoEnabled,
+                    onCheckedChange = { appState.updateAbsenceIoEnabled(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = colors.cardSurface,
+                        checkedTrackColor = colors.accent,
+                        uncheckedThumbColor = colors.textOnCardTertiary,
+                        uncheckedTrackColor = colors.borderOnCard
+                    )
+                )
+            }
+
+            if (appState.absenceIoEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var keyIdText by remember(appState.absenceIoKeyId) {
+                    mutableStateOf(appState.absenceIoKeyId)
+                }
+                OutlinedTextField(
+                    value = keyIdText,
+                    onValueChange = {
+                        keyIdText = it
+                        appState.updateAbsenceIoKeyId(it)
+                    },
+                    label = { Text("API Key ID", color = colors.textOnCardSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.borderOnCard,
+                        cursorColor = colors.accent
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var keySecretText by remember(appState.absenceIoKeySecret) {
+                    mutableStateOf(appState.absenceIoKeySecret)
+                }
+                OutlinedTextField(
+                    value = keySecretText,
+                    onValueChange = {
+                        keySecretText = it
+                        appState.updateAbsenceIoKeySecret(it)
+                    },
+                    label = { Text("API Key Secret", color = colors.textOnCardSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.borderOnCard,
+                        cursorColor = colors.accent
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var testResult by remember { mutableStateOf<String?>(null) }
+
+                // Last sync + sync button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (appState.absenceIoLastSync.isNotBlank()) {
+                            Text(
+                                text = "Last sync: ${appState.absenceIoLastSync}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.textOnCardSecondary
+                            )
+                        }
+                        overtimeViewModel.syncError?.let { error ->
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.destructive
+                            )
+                        }
+                        testResult?.let { result ->
+                            val resultColor = if (result == "Connected") colors.success else colors.destructive
+                            Text(
+                                text = "Test: $result",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = resultColor
+                            )
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            testResult = null
+                            overtimeViewModel.testAbsenceConnection { result ->
+                                testResult = result.fold(
+                                    onSuccess = { "Connected" },
+                                    onFailure = { it.message ?: "Failed" }
+                                )
+                            }
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.accent)
+                    ) {
+                        Text("Test", style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = { overtimeViewModel.syncAbsences() },
+                        enabled = !overtimeViewModel.isSyncing,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.accent,
+                            contentColor = colors.bgPrimary
+                        )
+                    ) {
+                        if (overtimeViewModel.isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = colors.bgPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("Sync Now", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         }
     }
 }

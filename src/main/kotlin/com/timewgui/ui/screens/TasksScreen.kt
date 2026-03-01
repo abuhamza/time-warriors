@@ -14,10 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.timewgui.domain.model.Task
 import com.timewgui.domain.model.TaskStatus
 import com.timewgui.ui.components.TagSelector
 import com.timewgui.ui.theme.LocalTimewColors
@@ -27,6 +29,11 @@ import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.TagViewModel
 import com.timewgui.viewmodel.TaskViewModel
 import com.timewgui.viewmodel.TimerViewModel
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun TasksScreen(
@@ -178,76 +185,81 @@ fun TasksScreen(
         ) {
             // LEFT PANE: Task list
             Column(modifier = Modifier.weight(1f)) {
+                val showDateGroups = statusFilter == TaskStatus.DONE || statusFilter == null
+
+                // For All tab: split into non-done (flat) + done (date-grouped)
+                val nonDoneTasks = remember(filteredTasks, statusFilter) {
+                    if (statusFilter == null) filteredTasks.filter { it.status != TaskStatus.DONE }
+                    else emptyList()
+                }
+                val doneTasks = remember(filteredTasks, showDateGroups) {
+                    if (showDateGroups) {
+                        val tasks = if (statusFilter == null) {
+                            filteredTasks.filter { it.status == TaskStatus.DONE }
+                        } else {
+                            filteredTasks
+                        }
+                        groupTasksByCompletionDate(tasks)
+                    } else {
+                        null
+                    }
+                }
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(filteredTasks, key = { it.id }) { task ->
-                        val isSelected = task.id == selectedTaskId
-                        val isDone = task.status == TaskStatus.DONE
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (isSelected) colors.accent.copy(alpha = 0.15f)
-                                    else colors.cardSurface
-                                )
-                                .clickable {
-                                    selectedTaskId = if (isSelected) null else task.id
+                    // Non-done tasks (only on All tab, shown first as flat list)
+                    if (nonDoneTasks.isNotEmpty()) {
+                        items(nonDoneTasks, key = { it.id }) { task ->
+                            TaskListItem(
+                                task = task,
+                                isSelected = task.id == selectedTaskId,
+                                taskViewModel = taskViewModel,
+                                colors = colors,
+                                onClick = {
+                                    selectedTaskId = if (task.id == selectedTaskId) null else task.id
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Checkbox for quick done toggle
-                            Checkbox(
-                                checked = isDone,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        taskViewModel.updateStatus(task.id, TaskStatus.DONE)
-                                    } else {
-                                        taskViewModel.updateStatus(task.id, TaskStatus.TODO)
+                            )
+                        }
+                    }
+
+                    // Date-grouped done tasks (All tab and Done tab)
+                    if (doneTasks != null) {
+                        doneTasks.forEach { (dateLabel, tasksInGroup) ->
+                            item(key = "header-$dateLabel") {
+                                Text(
+                                    text = dateLabel,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = colors.textSecondary,
+                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                )
+                            }
+                            items(tasksInGroup, key = { it.id }) { task ->
+                                TaskListItem(
+                                    task = task,
+                                    isSelected = task.id == selectedTaskId,
+                                    taskViewModel = taskViewModel,
+                                    colors = colors,
+                                    onClick = {
+                                        selectedTaskId = if (task.id == selectedTaskId) null else task.id
                                     }
-                                },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = colors.success,
-                                    uncheckedColor = colors.accent,
-                                    checkmarkColor = Color.White
-                                ),
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            // Status indicator for IN_PROGRESS
-                            if (task.status == TaskStatus.IN_PROGRESS) {
-                                Text(
-                                    text = "\u25B6",
-                                    color = colors.accent,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(end = 4.dp)
                                 )
                             }
+                        }
+                    }
 
-                            // Title
-                            Text(
-                                text = task.title,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = if (isDone) FontWeight.Normal else FontWeight.Medium,
-                                    textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None
-                                ),
-                                color = if (isDone) colors.textOnCardTertiary else colors.textOnCardPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                    // Flat list for Todo and Active tabs
+                    if (doneTasks == null && nonDoneTasks.isEmpty()) {
+                        items(filteredTasks, key = { it.id }) { task ->
+                            TaskListItem(
+                                task = task,
+                                isSelected = task.id == selectedTaskId,
+                                taskViewModel = taskViewModel,
+                                colors = colors,
+                                onClick = {
+                                    selectedTaskId = if (task.id == selectedTaskId) null else task.id
+                                }
                             )
-
-                            // Duration
-                            val duration = taskViewModel.timePerTask[task.tag]
-                            if (duration != null) {
-                                Text(
-                                    text = formatTaskDuration(duration),
-                                    style = TimewTypography.monospace,
-                                    color = colors.textOnCardSecondary,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
                         }
                     }
                 }
@@ -421,6 +433,105 @@ fun TasksScreen(
             }
         }
     }
+}
+
+@Composable
+private fun TaskListItem(
+    task: Task,
+    isSelected: Boolean,
+    taskViewModel: TaskViewModel,
+    colors: com.timewgui.ui.theme.TimewColors,
+    onClick: () -> Unit
+) {
+    val isDone = task.status == TaskStatus.DONE
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (isSelected) lerp(colors.cardSurface, colors.accent, 0.15f)
+                else colors.cardSurface
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = isDone,
+            onCheckedChange = { checked ->
+                if (checked) {
+                    taskViewModel.updateStatus(task.id, TaskStatus.DONE)
+                } else {
+                    taskViewModel.updateStatus(task.id, TaskStatus.TODO)
+                }
+            },
+            colors = CheckboxDefaults.colors(
+                checkedColor = colors.success,
+                uncheckedColor = colors.textOnCardPrimary,
+                checkmarkColor = Color.White
+            ),
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+
+        if (task.status == TaskStatus.IN_PROGRESS) {
+            Text(
+                text = "\u25B6",
+                color = colors.textOnCardSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(end = 4.dp)
+            )
+        }
+
+        Text(
+            text = task.title,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (isDone) FontWeight.Normal else FontWeight.Medium,
+                textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None
+            ),
+            color = if (isDone) colors.textOnCardTertiary else colors.textOnCardPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+
+        val duration = taskViewModel.timePerTask[task.tag]
+        if (duration != null) {
+            Text(
+                text = formatTaskDuration(duration),
+                style = TimewTypography.monospace,
+                color = colors.textOnCardSecondary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+private fun groupTasksByCompletionDate(tasks: List<Task>): List<Pair<String, List<Task>>> {
+    val zone = ZoneId.systemDefault()
+    val today = LocalDate.now(zone)
+    val yesterday = today.minusDays(1)
+    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+
+    return tasks
+        .sortedByDescending { it.completedAt ?: 0L }
+        .groupBy { task ->
+            val completedAt = task.completedAt
+            if (completedAt != null) {
+                Instant.ofEpochMilli(completedAt).atZone(zone).toLocalDate()
+            } else {
+                null
+            }
+        }
+        .map { (date, tasksInGroup) ->
+            val label = when (date) {
+                today -> "Today"
+                yesterday -> "Yesterday"
+                null -> "Unknown"
+                else -> date.format(dateFormatter)
+            }
+            label to tasksInGroup
+        }
 }
 
 @Composable

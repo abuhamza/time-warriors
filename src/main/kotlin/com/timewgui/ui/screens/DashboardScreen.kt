@@ -33,11 +33,16 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.timewgui.domain.model.ExcludedDateRange
 import com.timewgui.domain.model.Interval
 import com.timewgui.ui.components.IntervalList
+import com.timewgui.ui.components.OvertimeCard
 import com.timewgui.ui.components.ProgressIndicator
+import com.timewgui.ui.components.UnreviewedDaysDialog
 import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
+import com.timewgui.viewmodel.AppState
+import com.timewgui.viewmodel.OvertimeViewModel
 import com.timewgui.viewmodel.TagViewModel
 import com.timewgui.viewmodel.TimelineViewModel
 import com.timewgui.viewmodel.TimerViewModel
@@ -53,6 +58,8 @@ fun DashboardScreen(
     timerViewModel: TimerViewModel,
     timelineViewModel: TimelineViewModel,
     tagViewModel: TagViewModel,
+    overtimeViewModel: OvertimeViewModel,
+    appState: AppState,
     onStartTimer: () -> Unit,
     onContinueInterval: (Interval) -> Unit,
     modifier: Modifier = Modifier
@@ -60,10 +67,12 @@ fun DashboardScreen(
     val colors = LocalTimewColors.current
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     var selectedTab by remember { mutableStateOf(PeriodTab.TODAY) }
+    var showUnreviewedDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         timelineViewModel.jumpToToday()
         timelineViewModel.switchViewMode(com.timewgui.viewmodel.ViewMode.WEEK)
+        overtimeViewModel.refresh()
     }
 
     val todayIntervals = remember(timelineViewModel.intervals) {
@@ -116,11 +125,22 @@ fun DashboardScreen(
         ProgressIndicator(
             label = "Today",
             current = todayTotal,
-            target = 8.hours,
+            target = appState.dailyTargetHours.hours,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         )
+
+        if (appState.overtimeEnabled) {
+            OvertimeCard(
+                overtimeViewModel = overtimeViewModel,
+                startDate = appState.overtimeStartDate,
+                onReviewUnreviewedDays = { showUnreviewedDialog = true },
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 4.dp)
+            )
+        }
 
         // Period tabs
         Row(
@@ -199,6 +219,22 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    if (showUnreviewedDialog && overtimeViewModel.unreviewedDays.isNotEmpty()) {
+        UnreviewedDaysDialog(
+            unreviewedDays = overtimeViewModel.unreviewedDays,
+            onExcludeSelected = { dates, label ->
+                dates.forEach { date ->
+                    appState.addExcludedDateRange(
+                        ExcludedDateRange(start = date, end = date, label = label)
+                    )
+                }
+                overtimeViewModel.refresh()
+                showUnreviewedDialog = false
+            },
+            onDismiss = { showUnreviewedDialog = false }
+        )
     }
 }
 

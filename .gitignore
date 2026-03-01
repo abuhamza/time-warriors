@@ -17,6 +17,7 @@ screenshots/history/*
 # IDE
 .idea/
 *.iml
+.cursor/skills/
 
 # OS
 .DS_Store

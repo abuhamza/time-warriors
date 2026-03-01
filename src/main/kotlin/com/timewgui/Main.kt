@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -33,12 +34,27 @@ import com.timewgui.ui.theme.TimewGuiTheme
 import com.timewgui.domain.repository.TaskRepository
 import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.IdleViewModel
+import com.timewgui.viewmodel.OvertimeViewModel
 import com.timewgui.viewmodel.TagViewModel
 import com.timewgui.viewmodel.TaskViewModel
 import com.timewgui.viewmodel.TimelineViewModel
 import com.timewgui.viewmodel.TimerViewModel
 
-fun main() = application {
+fun main() {
+    // Set macOS dock icon before any AWT/Swing initialization
+    try {
+        val iconUrl = Thread.currentThread().contextClassLoader.getResource("icon.png")
+        if (iconUrl != null) {
+            val image = javax.imageio.ImageIO.read(iconUrl)
+            if (java.awt.Taskbar.isTaskbarSupported()) {
+                java.awt.Taskbar.getTaskbar().iconImage = image
+            }
+        }
+    } catch (_: Exception) {
+        // Taskbar API not available on this platform
+    }
+
+    application {
     val appState = remember { AppState() }
     val timerViewModel = remember {
         TimerViewModel(appState.timewCli) { appState.showError(it) }
@@ -51,11 +67,16 @@ fun main() = application {
     val taskViewModel = remember {
         TaskViewModel(taskRepository, appState.timewCli) { appState.showError(it) }
     }
+    val overtimeViewModel = remember {
+        OvertimeViewModel(appState.timewCli, appState) { appState.showError(it) }
+    }
     val idleViewModel = remember {
         IdleViewModel(appState.timewCli, timerViewModel, appState) { appState.showError(it) }
     }
 
     var showStartTimerDialog by remember { mutableStateOf(false) }
+    var isWindowVisible by remember { mutableStateOf(true) }
+    var recentTagSets by remember { mutableStateOf<List<List<String>>>(emptyList()) }
 
     val appIcon = remember {
         val stream = Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")
@@ -64,8 +85,90 @@ fun main() = application {
         }
     }
 
+    // Refresh overtime balance when timer stops
+    LaunchedEffect(timerViewModel.isRunning) {
+        if (!timerViewModel.isRunning) {
+            overtimeViewModel.refresh()
+        }
+    }
+
+    // Auto-sync absence.io on launch when enabled
+    LaunchedEffect(Unit) {
+        if (appState.absenceIoEnabled) {
+            overtimeViewModel.syncAbsences()
+        }
+    }
+
+    // Fetch recent tag combinations for tray quick-start menu
+    LaunchedEffect(timerViewModel.isRunning) {
+        appState.timewCli.exportIntervals(":week")
+            .onSuccess { intervals ->
+                recentTagSets = intervals
+                    .map { it.tags.sorted() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .take(5)
+            }
+    }
+
+    // System tray — lets user control timer without opening the window
+    appIcon?.let { icon ->
+        Tray(
+            icon = icon,
+            tooltip = if (timerViewModel.isRunning) {
+                "TimewGUI \u2014 ${formatElapsed(timerViewModel.elapsedTime)}"
+            } else {
+                "TimewGUI"
+            },
+            onAction = { isWindowVisible = true },
+            menu = {
+                if (timerViewModel.isRunning) {
+                    Item(
+                        "\u25CF Tracking: ${formatElapsed(timerViewModel.elapsedTime)}",
+                        enabled = false,
+                        onClick = {}
+                    )
+                    timerViewModel.activeInterval?.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+                        Item(
+                            "   ${tags.joinToString(", ")}",
+                            enabled = false,
+                            onClick = {}
+                        )
+                    }
+                    Separator()
+                    Item("Stop Timer") { timerViewModel.stopTimer() }
+                } else {
+                    Item("\u25CB Idle", enabled = false, onClick = {})
+                    Separator()
+                    Item("Start Timer\u2026") {
+                        isWindowVisible = true
+                        showStartTimerDialog = true
+                    }
+                }
+
+                if (recentTagSets.isNotEmpty()) {
+                    Separator()
+                    Menu("Quick Start") {
+                        recentTagSets.forEach { tags ->
+                            Item(tags.joinToString(", ")) {
+                                timerViewModel.startTimer(tags)
+                            }
+                        }
+                    }
+                }
+
+                Separator()
+                if (!isWindowVisible) {
+                    Item("Show Window") { isWindowVisible = true }
+                }
+                Item("Quit TimewGUI") { exitApplication() }
+            }
+        )
+    }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        visible = isWindowVisible,
+        onCloseRequest = { isWindowVisible = false },
         title = "TimewGUI",
         icon = appIcon,
         state = rememberWindowState(width = 1200.dp, height = 800.dp)
@@ -103,6 +206,8 @@ fun main() = application {
                             timerViewModel = timerViewModel,
                             timelineViewModel = timelineViewModel,
                             tagViewModel = tagViewModel,
+                            overtimeViewModel = overtimeViewModel,
+                            appState = appState,
                             onStartTimer = { showStartTimerDialog = true },
                             onContinueInterval = { interval ->
                                 timerViewModel.continueTimer(interval.id)
@@ -134,6 +239,7 @@ fun main() = application {
                         Screen.SETTINGS -> SettingsScreen(
                             appState = appState,
                             tagViewModel = tagViewModel,
+                            overtimeViewModel = overtimeViewModel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -165,6 +271,7 @@ fun main() = application {
                 modifier = Modifier
             )
         }
+    }
     }
 }
 

@@ -29,11 +29,22 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1")
+
+    testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.16")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
 }
+
+tasks.withType<Test> { useJUnitPlatform() }
 
 compose.desktop {
     application {
         mainClass = "com.timewgui.MainKt"
+
+        // macOS: set app name and dock icon so notifications show "TimewGUI" instead of "java"
+        jvmArgs += "-Xdock:name=TimewGUI"
+        jvmArgs += "-Xdock:icon=${project.file("src/main/resources/icon.png").absolutePath}"
+        jvmArgs += "-Dapple.awt.application.name=TimewGUI"
 
         val instanceId = project.findProperty("instanceId") as? String
         if (instanceId != null) {
@@ -43,7 +54,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "TimewGUI"
-            packageVersion = "1.0.0"
+            packageVersion = project.findProperty("appVersion") as String
             description = "A modern desktop GUI for Timewarrior"
 
             macOS {

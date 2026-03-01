@@ -5,7 +5,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
-class TaskRepository {
+open class TaskRepository {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -15,7 +15,7 @@ class TaskRepository {
     private val storageFile: File
         get() = File(System.getProperty("user.home"), ".config/timewgui/tasks.json")
 
-    fun load(): List<Task> {
+    open fun load(): List<Task> {
         val file = storageFile
         if (!file.exists()) return emptyList()
         return try {
@@ -25,7 +25,7 @@ class TaskRepository {
         }
     }
 
-    fun save(tasks: List<Task>) {
+    open fun save(tasks: List<Task>) {
         val file = storageFile
         file.parentFile.mkdirs()
         val tempFile = File(file.parentFile, "${file.name}.tmp")

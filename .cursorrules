@@ -5,6 +5,8 @@
 - All CLI methods return `Result<T>` — always handle both `onSuccess` and `onFailure`
 - After any mutation (delete, modify, tag, etc.), call `refreshIntervals()` on `TimelineViewModel`
 - ViewModels use `CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)` for UI-safe coroutine launching
+- Task CRUD goes through `TaskRepository` → `TaskViewModel` — tasks are persisted to `~/.config/timewgui/tasks.json`
+- Tasks link to time intervals via generated tags (`task:<slug>`) from `TaskRepository.generateTag()`
 
 ## Theme & Styling
 - The theme is "African Savanna" with warm earth tones, NOT the neutral gray/blue from the PRD
@@ -13,6 +15,7 @@
 - Times and durations must always use monospace font (`TimewTypography.monospace`)
 - Timeline blocks use 0px border radius (sharp corners) — this is intentional for precision aesthetics
 - Dashboard banner is a custom Canvas drawing (savanna sunset) — not an image resource
+- Dark mode cards use dedicated `textOnCardPrimary/Secondary/Tertiary` tokens — do NOT use regular text colors on card surfaces
 
 ## Build & Run
 - Always use `make run` or `./gradlew run` to launch (foreground)
@@ -26,12 +29,14 @@
 - `kotlinx.datetime.Instant` is deprecated in favor of `kotlin.time.Instant` — new code should use `kotlin.time.Instant`
 - `Icons.Outlined.Label` is deprecated — use `Icons.AutoMirrored.Outlined.Label` instead
 - `compose.material3` dependency needs `@Suppress("DEPRECATION")` in build.gradle.kts
-- Dark mode `cardSurface` is warm off-white (#FFF5E8) — text on cards uses light-mode text colors for contrast
+- Dark mode `cardSurface` is warm off-white (#FFF5E8) — text on cards must use `textOnCard*` tokens for contrast
 - No test infrastructure exists yet — when adding tests, use `src/test/kotlin/`
-- App icons (icns/png/ico) don't exist yet — packaging targets will fail until created
+- App icons (icns/ico) don't exist yet — packaging targets will fail until created (icon.png exists)
 - `JAVA_TOOL_OPTIONS` env var is NOT visible in process command line — use `-PinstanceId=` Gradle property instead for `pgrep -f` matching
 - Python 3.14 on macOS enforces PEP 668 — always use `.dev/venv/` for pip installs, never `--break-system-packages`
 - `screencapture` requires Screen Recording permission for the calling app (Cursor) — one-time macOS grant via System Settings
+- `LazyColumn` cannot be nested inside `Column(Modifier.verticalScroll())` — use `weight(1f)` for bounded height
+- Kotlin property setters can conflict with JVM names (e.g. `setEnabled` vs `isEnabled`) — rename methods to avoid
 
 ## User Preferences
 - The sidebar branding is "TimeTrackAI" (not "TimewGUI")
@@ -40,10 +45,12 @@
 - Canvas-based rendering preferred for timeline visualizations (better performance and control)
 
 ## File Organization
-- Domain logic: `domain/` (model + CLI)
+- Domain logic: `domain/` (model + CLI + repository)
 - UI state: `viewmodel/`
 - UI rendering: `ui/` (theme, components, screens, navigation)
 - Each screen in `ui/screens/` connects components to ViewModels
 - Reusable composables in `ui/components/`
 - Dev tooling: `scripts/` (dev-screenshot.sh), `.dev/` (runtime state), `screenshots/` (captured images)
 - Agent rules: `.cursor/rules/` (dev-feedback-loop.mdc)
+- Agent skills: `.cursor/skills/` (update-memory-bank)
+- Memory bank: `memory-bank/` (projectbrief, productContext, activeContext, systemPatterns, techContext, progress)
