@@ -83,6 +83,11 @@ fun TasksScreen(
         taskViewModel.refreshTimeAggregation()
     }
 
+    // Re-fetch time aggregation when the timer starts or stops
+    LaunchedEffect(timerViewModel.isRunning) {
+        taskViewModel.refreshTimeAggregation()
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()

@@ -234,6 +234,7 @@ fun main() {
                         )
                         Screen.REPORTS -> ReportsScreen(
                             timelineViewModel = timelineViewModel,
+                            timerViewModel = timerViewModel,
                             tagViewModel = tagViewModel,
                             modifier = Modifier.weight(1f)
                         )

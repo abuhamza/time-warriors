@@ -79,11 +79,12 @@ fun DashboardScreen(
         timelineViewModel.getIntervalsForDate(today)
     }
 
-    val todayTotal = remember(todayIntervals) {
+    // Re-derive every tick so the progress bar updates while the timer is running
+    val todayTotal = remember(todayIntervals, timerViewModel.elapsedTime) {
         todayIntervals.fold(kotlin.time.Duration.ZERO) { acc, i -> acc + i.duration }
     }
 
-    val weeklyTotal = remember(timelineViewModel) {
+    val weeklyTotal = remember(timelineViewModel.intervals, timerViewModel.elapsedTime) {
         timelineViewModel.getWeeklyTotal()
     }
 

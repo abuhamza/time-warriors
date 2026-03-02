@@ -53,6 +53,7 @@ sealed class ReportRange {
 @Composable
 fun ReportsScreen(
     timelineViewModel: TimelineViewModel,
+    timerViewModel: com.timewgui.viewmodel.TimerViewModel,
     tagViewModel: com.timewgui.viewmodel.TagViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -89,7 +90,7 @@ fun ReportsScreen(
         }
     }
 
-    val totalDuration = remember(reportIntervals) {
+    val totalDuration = remember(reportIntervals, timerViewModel.elapsedTime) {
         reportIntervals.fold(Duration.ZERO) { acc, i -> acc + i.duration }
     }
 
