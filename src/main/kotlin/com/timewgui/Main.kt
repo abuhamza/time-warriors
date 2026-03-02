@@ -1,11 +1,22 @@
 package com.timewgui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +30,7 @@ import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.timewgui.domain.cli.TimewCli
 import com.timewgui.ui.components.IdleDialog
 import com.timewgui.ui.components.Sidebar
 import com.timewgui.ui.components.StartTimerDialog
@@ -55,6 +67,7 @@ fun main() {
     }
 
     application {
+    val timewAvailable = remember { TimewCli.isAvailable() }
     val appState = remember { AppState() }
     val timerViewModel = remember {
         TimerViewModel(appState.timewCli) { appState.showError(it) }
@@ -270,6 +283,49 @@ fun main() {
                 hostState = snackbarHostState,
                 modifier = Modifier
             )
+
+            if (!timewAvailable) {
+                val os = System.getProperty("os.name", "").lowercase()
+                val installCmd = when {
+                    os.contains("mac") -> "brew install timewarrior"
+                    os.contains("linux") -> "sudo apt install timewarrior"
+                    os.contains("win") -> "Download from timewarrior.net"
+                    else -> "See timewarrior.net for installation"
+                }
+                AlertDialog(
+                    onDismissRequest = {},
+                    icon = { Icon(Icons.Outlined.Warning, contentDescription = null) },
+                    title = { Text("Timewarrior not found") },
+                    text = {
+                        Column {
+                            Text("TimewGUI requires the Timewarrior CLI (timew) to be installed.")
+                            Spacer(Modifier.height(8.dp))
+                            Text("Install it with:")
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                installCmd,
+                                fontFamily = com.timewgui.ui.theme.TimewTypography.monospace.fontFamily
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text("Then restart TimewGUI.")
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { exitApplication() }) {
+                            Text("Quit")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            java.awt.Desktop.getDesktop().browse(
+                                java.net.URI("https://timewarrior.net/docs/install/")
+                            )
+                        }) {
+                            Text("Open Install Guide")
+                        }
+                    }
+                )
+            }
         }
     }
     }

@@ -27,6 +27,21 @@ open class TimewCli(
             )
             return candidates.firstOrNull { File(it).canExecute() } ?: "timew"
         }
+
+        fun isAvailable(): Boolean {
+            val path = resolveTimewPath()
+            if (path != "timew") return true
+            // Bare "timew" — check if it's on PATH
+            return try {
+                val p = ProcessBuilder("timew", "--version")
+                    .redirectErrorStream(true)
+                    .start()
+                p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+                p.exitValue() == 0
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
     private val json = Json { ignoreUnknownKeys = true }
 

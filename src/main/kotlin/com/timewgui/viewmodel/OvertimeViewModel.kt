@@ -151,36 +151,39 @@ class OvertimeViewModel(
         scope.launch {
             isSyncing = true
             syncError = null
-            val client = AbsenceIoClient(appState.absenceIoKeyId, appState.absenceIoKeySecret)
-            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-            client.fetchAbsences(appState.overtimeStartDate, today)
-                .onSuccess { absences ->
-                    val importedRanges = absences.mapNotNull { entry ->
-                        val start = runCatching { LocalDate.parse(entry.start.take(10)) }.getOrNull()
-                        val end = runCatching { LocalDate.parse(entry.end.take(10)) }.getOrNull()
-                        if (start != null && end != null) {
-                            ExcludedDateRange(
-                                start = start,
-                                end = end,
-                                label = entry.reason?.name ?: "Absence",
-                                source = ExclusionSource.ABSENCE_IO
-                            )
-                        } else null
+            try {
+                val client = AbsenceIoClient(appState.absenceIoKeyId, appState.absenceIoKeySecret)
+                val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+                client.fetchAbsences(appState.overtimeStartDate, today)
+                    .onSuccess { absences ->
+                        val importedRanges = absences.mapNotNull { entry ->
+                            val start = runCatching { LocalDate.parse(entry.start.take(10)) }.getOrNull()
+                            val end = runCatching { LocalDate.parse(entry.end.take(10)) }.getOrNull()
+                            if (start != null && end != null) {
+                                ExcludedDateRange(
+                                    start = start,
+                                    end = end,
+                                    label = entry.reason?.name ?: "Absence",
+                                    source = ExclusionSource.ABSENCE_IO
+                                )
+                            } else null
+                        }
+                        val manualRanges = appState.excludedDateRanges.filter {
+                            it.source == ExclusionSource.MANUAL
+                        }
+                        appState.updateExcludedDateRanges(manualRanges + importedRanges)
+                        appState.updateAbsenceIoLastSync(
+                            java.time.LocalDateTime.now().toString().take(16).replace('T', ' ')
+                        )
+                        refresh()
                     }
-                    val manualRanges = appState.excludedDateRanges.filter {
-                        it.source == ExclusionSource.MANUAL
+                    .onFailure { e ->
+                        syncError = e.message ?: "Sync failed"
+                        onError("absence.io sync failed: ${e.message}")
                     }
-                    appState.updateExcludedDateRanges(manualRanges + importedRanges)
-                    appState.updateAbsenceIoLastSync(
-                        java.time.LocalDateTime.now().toString().take(16).replace('T', ' ')
-                    )
-                    refresh()
-                }
-                .onFailure { e ->
-                    syncError = e.message ?: "Sync failed"
-                    onError("absence.io sync failed: ${e.message}")
-                }
-            isSyncing = false
+            } finally {
+                isSyncing = false
+            }
         }
     }
 
