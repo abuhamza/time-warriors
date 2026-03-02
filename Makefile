@@ -9,7 +9,7 @@ DMG_PATH   := build/compose/binaries/main/dmg/TimewGUI-$(VERSION).dmg
 
 .PHONY: run build compile clean test package-dmg package-deb package-msi \
         run-bg stop wait-window screenshot dev-feedback \
-        release version help
+        release ship version help
 
 test: ## Run all tests
 	./gradlew test
@@ -90,6 +90,21 @@ package-msi: ## Package as Windows .msi
 
 version: ## Print current version
 	@echo "$(VERSION)"
+
+ship: ## Commit, push, and release (usage: make ship v=1.2.1 m="Fix something")
+	@if [ -z "$(v)" ]; then echo "ERROR: version required, e.g. make ship v=1.2.1 m=\"Fix something\"" >&2; exit 1; fi
+	@if [ -z "$(m)" ]; then echo "ERROR: message required, e.g. make ship v=1.2.1 m=\"Fix something\"" >&2; exit 1; fi
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "=== Committing changes ==="; \
+		git add -A && git commit -m "$(m)"; \
+	else \
+		echo "=== Working tree clean, skipping commit ==="; \
+	fi
+	@echo "=== Pushing to origin ==="
+	git push origin main
+	@echo "=== Creating GitHub release v$(v) ==="
+	gh release create "v$(v)" --title "v$(v)" --generate-notes
+	@echo "=== Released v$(v) ==="
 
 release: ## Build DMG and create a GitHub release (usage: make release)
 	@echo "=== Building TimewGUI v$(VERSION) ==="
