@@ -20,4 +20,4 @@ A modern Compose Desktop GUI for the Timewarrior CLI (`timew`), enabling visual 
 - Not reimplementing Timewarrior's storage engine
 
 ## Current Status
-Phase 1 MVP is feature-complete and the application compiles and runs. In the polish and testing phase before moving to Phase 2 features (drag editing, gap fill, undo, system tray).
+Phase 1 MVP is feature-complete with Task Management added beyond the original PRD scope. The application compiles and runs (33 Kotlin files, ~5,146 lines). In the polish and testing phase before moving to Phase 2 features (drag editing, gap fill, undo, system tray).

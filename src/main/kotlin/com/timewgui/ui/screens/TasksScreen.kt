@@ -10,11 +10,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +59,15 @@ fun TasksScreen(
     var statusFilter by remember { mutableStateOf<TaskStatus?>(null) }
     var newTaskTitle by remember { mutableStateOf("") }
 
+    val screenFocusRequester = remember { FocusRequester() }
+    val titleFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) { screenFocusRequester.requestFocus() }
+    LaunchedEffect(showCreateForm) {
+        if (showCreateForm) titleFocusRequester.requestFocus()
+        else screenFocusRequester.requestFocus()
+    }
+
     val filteredTasks = remember(taskViewModel.tasks, statusFilter) {
         when (statusFilter) {
             null -> taskViewModel.tasks.filter { it.status != TaskStatus.ARCHIVED }
@@ -70,6 +88,14 @@ fun TasksScreen(
             .fillMaxWidth()
             .background(colors.bgPrimary)
             .padding(TimewDimensions.sectionGap)
+            .focusRequester(screenFocusRequester)
+            .focusable()
+            .onPreviewKeyEvent { keyEvent ->
+                if (!showCreateForm && keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.N) {
+                    showCreateForm = true
+                    true
+                } else false
+            }
     ) {
         // Header row
         Row(
@@ -106,7 +132,27 @@ fun TasksScreen(
                     value = newTaskTitle,
                     onValueChange = { newTaskTitle = it },
                     label = { Text("Task title") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(titleFocusRequester)
+                        .onKeyEvent { keyEvent ->
+                            when {
+                                keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter -> {
+                                    if (newTaskTitle.isNotBlank()) {
+                                        taskViewModel.createTask(newTaskTitle, appState.defaultContextTags)
+                                        newTaskTitle = ""
+                                        showCreateForm = false
+                                    }
+                                    true
+                                }
+                                keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape -> {
+                                    newTaskTitle = ""
+                                    showCreateForm = false
+                                    true
+                                }
+                                else -> false
+                            }
+                        },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colors.accent,

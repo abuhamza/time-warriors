@@ -15,6 +15,7 @@ Timewarrior is a powerful CLI time tracker with no native GUI. Users must memori
 - Reads data via `timew export` (JSON format)
 - Writes data via `timew start/stop/modify/delete/etc.` commands
 - GUI-specific config (tag colors, targets) stored separately via `java.util.prefs.Preferences`
+- Task management with file-based JSON persistence (`~/.config/timewgui/tasks.json`), linked to intervals via generated tags
 - Real-time timer display with 1-second tick updates
 - Canvas-based timeline rendering for day and week views
 
