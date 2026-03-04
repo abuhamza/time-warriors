@@ -20,4 +20,7 @@ data class Task(
     val createdAt: Long,
     val completedAt: Long? = null,
     val sortOrder: Int = 0,
+    val recurrenceRule: RecurrenceRule? = null,       // non-null → this IS a template
+    val recurrenceTemplateId: String? = null,         // non-null → this IS an instance
+    val scheduledDate: Long? = null,                  // start-of-day epoch millis for instance
 )

@@ -3,10 +3,13 @@ package com.timewgui.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.timewgui.domain.RecurrenceEngine
 import com.timewgui.domain.cli.TimewCli
+import com.timewgui.domain.model.RecurrenceRule
 import com.timewgui.domain.model.Task
 import com.timewgui.domain.model.TaskStatus
 import com.timewgui.domain.repository.TaskRepository
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,10 +32,70 @@ class TaskViewModel(
 
     init {
         loadTasks()
+        generateInstancesForToday()
     }
 
     private fun loadTasks() {
         tasks = taskRepository.load()
+    }
+
+    fun createRecurringTask(title: String, contextTags: List<String>, rule: RecurrenceRule) {
+        val tag = taskRepository.generateTag(title)
+        val template = Task(
+            id = java.util.UUID.randomUUID().toString(),
+            title = title,
+            tag = tag,
+            contextTags = contextTags,
+            status = TaskStatus.TODO,
+            createdAt = System.currentTimeMillis(),
+            sortOrder = tasks.size,
+            recurrenceRule = rule,
+        )
+        tasks = tasks + template
+        saveTasks()
+        generateInstancesForToday()
+    }
+
+    fun generateInstancesForToday() {
+        val today = LocalDate.now()
+        val todayStart = RecurrenceEngine.startOfDay(today)
+        val templates = tasks.filter { it.recurrenceRule != null }
+        var current = tasks
+        var changed = false
+        for (template in templates) {
+            val existingToday = current.any {
+                it.recurrenceTemplateId == template.id && it.scheduledDate == todayStart
+            }
+            if (existingToday) continue
+            val generatedCount = current.count { it.recurrenceTemplateId == template.id }
+            if (RecurrenceEngine.shouldGenerateForDate(template, today, generatedCount)) {
+                current = current + RecurrenceEngine.generateInstance(template, today)
+                changed = true
+            }
+        }
+        if (changed) {
+            tasks = current
+            saveTasks()
+        }
+    }
+
+    fun deleteTemplate(templateId: String) {
+        val todayStart = RecurrenceEngine.startOfDay(LocalDate.now())
+        tasks = tasks.filter { task ->
+            when {
+                task.id == templateId -> false
+                task.recurrenceTemplateId == templateId ->
+                    task.scheduledDate != null && task.scheduledDate < todayStart
+                else -> true
+            }
+        }
+        saveTasks()
+    }
+
+    fun updateRecurrenceRule(templateId: String, rule: RecurrenceRule?) {
+        tasks = tasks.map { if (it.id == templateId) it.copy(recurrenceRule = rule) else it }
+        saveTasks()
+        if (rule != null) generateInstancesForToday()
     }
 
     fun createTask(title: String, contextTags: List<String>) {
