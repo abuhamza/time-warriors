@@ -26,8 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.timewgui.domain.cli.TimewCli
@@ -124,8 +126,42 @@ fun main() {
             }
     }
 
+    // Dynamic tray icon — shows elapsed time as text when running
+    val trayIcon = remember(timerViewModel.isRunning, timerViewModel.elapsedTime.inWholeMinutes) {
+        if (timerViewModel.isRunning) {
+            createTimerTrayIcon(formatElapsed(timerViewModel.elapsedTime))
+        } else {
+            appIcon
+        }
+    } ?: appIcon
+
+    // Idle dialog — separate always-on-top window so it interrupts the user
+    if (idleViewModel.isIdleDialogShowing) {
+        Window(
+            onCloseRequest = { idleViewModel.keepTracking() },
+            title = "Idle Detected",
+            alwaysOnTop = true,
+            resizable = false,
+            focusable = true,
+            state = rememberWindowState(
+                width = 480.dp,
+                height = 280.dp,
+                position = WindowPosition.Aligned(Alignment.Center)
+            )
+        ) {
+            TimewGuiTheme(darkTheme = appState.isDarkTheme ?: isSystemInDarkTheme()) {
+                IdleDialog(
+                    idleDurationMinutes = idleViewModel.idleDurationMinutes,
+                    onKeepTracking = { idleViewModel.keepTracking() },
+                    onPauseAndResume = { idleViewModel.pauseAndResume() },
+                    onStopTimer = { idleViewModel.discardIdleTime() }
+                )
+            }
+        }
+    }
+
     // System tray — lets user control timer without opening the window
-    appIcon?.let { icon ->
+    trayIcon?.let { icon ->
         Tray(
             icon = icon,
             tooltip = if (timerViewModel.isRunning) {
@@ -271,15 +307,6 @@ fun main() {
                 )
             }
 
-            if (idleViewModel.isIdleDialogShowing) {
-                IdleDialog(
-                    idleDurationMinutes = idleViewModel.idleDurationMinutes,
-                    onKeepTracking = { idleViewModel.keepTracking() },
-                    onPauseAndResume = { idleViewModel.pauseAndResume() },
-                    onStopTimer = { idleViewModel.discardIdleTime() }
-                )
-            }
-
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier
@@ -338,4 +365,30 @@ private fun formatElapsed(duration: kotlin.time.Duration): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (minutes == 0L) "${hours}h" else "${hours}h ${minutes}m"
+}
+
+/** Renders the elapsed time string as a menu-bar-sized image for the system tray icon. */
+private fun createTimerTrayIcon(timeText: String): BitmapPainter {
+    val font = java.awt.Font("Menlo", java.awt.Font.BOLD, 11)
+    val dummy = java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+    val dg = dummy.createGraphics().also { it.font = font }
+    val fm = dg.fontMetrics
+    val textWidth = fm.stringWidth(timeText)
+    dg.dispose()
+
+    val pad = 4
+    val w = textWidth + pad * 2
+    val h = 22
+    val img = java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+    val g = img.createGraphics()
+    g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
+    g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING, java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    g.font = font
+    g.color = java.awt.Color.WHITE
+    g.drawString(timeText, pad, (h + fm.ascent - fm.descent) / 2)
+    g.dispose()
+
+    val baos = java.io.ByteArrayOutputStream()
+    javax.imageio.ImageIO.write(img, "png", baos)
+    return BitmapPainter(org.jetbrains.skia.Image.makeFromEncoded(baos.toByteArray()).toComposeImageBitmap())
 }
