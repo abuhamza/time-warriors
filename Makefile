@@ -102,9 +102,10 @@ ship: ## Commit, push, and release (usage: make ship v=1.2.1 m="Fix something")
 	fi
 	@echo "=== Pushing to origin ==="
 	git push origin main
-	@echo "=== Creating GitHub release v$(v) ==="
-	gh release create "v$(v)" --title "v$(v)" --generate-notes
-	@echo "=== Released v$(v) ==="
+	@echo "=== Tagging v$(v) ==="
+	git tag "v$(v)"
+	git push origin "v$(v)"
+	@echo "=== Tag v$(v) pushed — CI will build packages and create the release ==="
 
 release: ## Build DMG and create a GitHub release (usage: make release)
 	@echo "=== Building TimewGUI v$(VERSION) ==="

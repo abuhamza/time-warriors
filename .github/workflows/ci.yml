@@ -78,7 +78,7 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Package
-        run: ./gradlew ${{ matrix.task }}
+        run: ./gradlew ${{ matrix.task }} -PappVersion=${GITHUB_REF_NAME#v}
 
       - name: Find package
         id: pkg
@@ -130,10 +130,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            release-assets/* \
-            --title "TimewGUI ${{ steps.version.outputs.VERSION }}" \
-            --generate-notes
+          if gh release view "${{ github.ref_name }}" &>/dev/null; then
+            echo "Release already exists — uploading assets to it"
+            gh release upload "${{ github.ref_name }}" release-assets/* --clobber
+          else
+            gh release create "${{ github.ref_name }}" \
+              release-assets/* \
+              --title "TimewGUI ${{ steps.version.outputs.VERSION }}" \
+              --generate-notes
+          fi
 
       - name: Update Homebrew Cask
         run: |
