@@ -42,9 +42,11 @@ compose.desktop {
         mainClass = "com.timewgui.MainKt"
 
         // macOS: set app name and dock icon so notifications show "TimewGUI" instead of "java"
-        jvmArgs += "-Xdock:name=TimewGUI"
-        jvmArgs += "-Xdock:icon=${project.file("src/main/resources/icon.png").absolutePath}"
-        jvmArgs += "-Dapple.awt.application.name=TimewGUI"
+        if (System.getProperty("os.name").lowercase().contains("mac")) {
+            jvmArgs += "-Xdock:name=TimewGUI"
+            jvmArgs += "-Xdock:icon=${project.file("src/main/resources/icon.png").absolutePath}"
+            jvmArgs += "-Dapple.awt.application.name=TimewGUI"
+        }
 
         val instanceId = project.findProperty("instanceId") as? String
         if (instanceId != null) {

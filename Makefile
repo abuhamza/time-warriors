@@ -1,4 +1,8 @@
-JAVA_HOME ?= /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+ifeq ($(shell uname),Darwin)
+  JAVA_HOME ?= /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+else
+  JAVA_HOME ?= /usr/lib/jvm/java-21-openjdk-amd64
+endif
 export JAVA_HOME
 export PATH := $(JAVA_HOME)/bin:$(PATH)
 

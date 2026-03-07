@@ -18,6 +18,19 @@ open class TimewCli(
     private val workingDirectory: File? = null
 ) {
     companion object {
+        /**
+         * Ensures Timewarrior config and data directories exist so that
+         * `timew` doesn't prompt interactively on first run.
+         */
+        fun ensureInitialized() {
+            val configDir = File(System.getenv("TIMEWARRIORDB")
+                ?: "${System.getProperty("user.home")}/.config/timewarrior")
+            val dataDir = File(System.getenv("TIMEWARRIORDB")?.let { "$it/data" }
+                ?: "${System.getProperty("user.home")}/.local/share/timewarrior/data")
+            configDir.mkdirs()
+            dataDir.mkdirs()
+        }
+
         fun resolveTimewPath(): String {
             val candidates = listOf(
                 "/opt/homebrew/bin/timew",      // macOS ARM Homebrew

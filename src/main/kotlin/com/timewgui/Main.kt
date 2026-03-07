@@ -69,7 +69,10 @@ fun main() {
     }
 
     application {
-    val timewAvailable = remember { TimewCli.isAvailable() }
+    val timewAvailable = remember {
+        TimewCli.ensureInitialized()
+        TimewCli.isAvailable()
+    }
     val appState = remember { AppState() }
     val timerViewModel = remember {
         TimerViewModel(appState.timewCli) { appState.showError(it) }
