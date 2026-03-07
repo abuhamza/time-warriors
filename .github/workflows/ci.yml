@@ -49,7 +49,7 @@ jobs:
           - os: macos-latest
             task: packageDmg
             ext: dmg
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             task: packageDeb
             ext: deb
           - os: windows-latest
@@ -207,9 +207,14 @@ jobs:
           dpkg-scanpackages --multiversion pool/ > dists/stable/main/binary-amd64/Packages
           gzip -k -f dists/stable/main/binary-amd64/Packages
 
-          # Generate Release file
+          # Generate Release file with proper Suite/Codename
           cd dists/stable
-          apt-ftparchive release . > Release
+          apt-ftparchive release \
+            -o APT::FTPArchive::Release::Suite=stable \
+            -o APT::FTPArchive::Release::Codename=stable \
+            -o APT::FTPArchive::Release::Architectures=amd64 \
+            -o APT::FTPArchive::Release::Components=main \
+            . > Release
 
       - name: Import GPG key
         run: |
