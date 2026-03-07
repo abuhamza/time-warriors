@@ -1,0 +1,36 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Date: Sat, 07 Mar 2026 13:05:02 +0000
+MD5Sum:
+ 54896e8a7120e6760df4f8f559487c4c               38 Release
+ fc1d0ca28b8bc4b54a8b418d829aa323              754 main/binary-amd64/Packages
+ b048fbbd852844e4e9a9189bd7adb75d              503 main/binary-amd64/Packages.gz
+SHA1:
+ daa404208d4381f87c24460566acd1bf172e91f5               38 Release
+ 712abcb98b73b6797e1e5f3349da4a5f8be896c4              754 main/binary-amd64/Packages
+ c1f7edb93327d9027e78866d5bc3240a77bd9f7f              503 main/binary-amd64/Packages.gz
+SHA256:
+ 159ca49337c46b397a7a1282bf6f9265866fa8cb06358825099bb2688ab73a2d               38 Release
+ e169860e46d540b1250f264e0d3f62d6679a1a0d0b65bc6e3ec21c386f23a7be              754 main/binary-amd64/Packages
+ 7130d79189c99772a20f01002f409eb431116077af05a859d5199949795e9ed2              503 main/binary-amd64/Packages.gz
+SHA512:
+ 7f8c4a9ac524f65fae63a4657b5ff695c9fe70ef660b6e92fe51773d3bfc4daae12dd91ede61f5dab433a124c2282cac1ce87c8fa725dad45bc8a2c9c23d163d               38 Release
+ df46244abec0274001f3fbf720861215ad4852c541efdb5ff480a2c0b541639ad26ada6216c2939cefd91cbbaa3fd658653de5e750046b3efa08013ff15d2fcc              754 main/binary-amd64/Packages
+ 93bb669430d4231166c6491499c7130fe27ba966725c1af260622a5e2789ce1e2cab4bfa0d168a624051d80419d6bf8916bd325cdf415f80b7ea39943d2ec8a1              503 main/binary-amd64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEE9zQmHmrm83cIDvM4cjFpQgQQW24FAmmsIn4ACgkQcjFpQgQQ
+W25DxA/8CiAUITw61mZCtnNrSRqWFarELf5+JrCeSeAP1NcR0u0wDPPoq6rJM6wQ
+X97fIDJA76G04xTJ+0rEi1l37ATbEpsnfzSK3ndz9FKAjDLi03e/joh9QevE2wWG
+jPQ4I5JpMKhO4itFkN9KugDIv2f9jOFgixQwc8omyI5iEBTX9DFvjGxRl/s0Nf6Y
+FfN5FxFurZCiBnqr+46plGjXcZSsT5rPzC8qqQRGatMl3U2rs8ja+NGAj+zID1+F
+qIoYbD/+eV9lNVpiJuRLC5SNpyMAOgLyr4BM0aiYJNUBMXLIN/JNYTvEJ4LEnUo5
+QYsbSeqkYf7tF6vSERPBdGLIav+GBKhvwX618lsHG9/DknVw8n+Ljo3FmtDJ1Q6e
+CBxKH1t8qIeJ7kcvUixstLL+mgUXNjCaJhcn7PQFsHXfYtyAxJDFRVGcadx+VONK
+MMUrAJeUVy3ekdEQKWv7DikiBNC7YXXI+i7Eq0GS/Twj5/PU/WkHa5+wH3gVFT9Z
+I6/1k2Zn33ncXC3gRFDsMtqpkPPzoVqvOTD2vavIFUOqs7KJ5JdY5lyEL9hqqWhu
+X7CkxTZZCzsySW4YvkypVYjfWBe9TQ8Y1O3fnx2sJT+1v10UhfC/+m0SOEzUjwHW
+Chpx8vMC1N3bNq+0mij06kKtg1zQ7cSPcId+15VhCAXzGNml12Q=
+=ha03
+-----END PGP SIGNATURE-----
