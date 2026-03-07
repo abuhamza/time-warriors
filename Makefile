@@ -9,7 +9,8 @@ DMG_PATH   := build/compose/binaries/main/dmg/TimewGUI-$(VERSION).dmg
 
 .PHONY: run build compile clean test package-dmg package-deb package-msi \
         run-bg stop wait-window screenshot dev-feedback \
-        release ship version help
+        release ship version help \
+        wt-new wt-list wt-remove wt-clean wt-parallel
 
 test: ## Run all tests
 	./gradlew test
@@ -122,6 +123,21 @@ release: ## Build DMG and create a GitHub release (usage: make release)
 		--generate-notes
 	@echo "=== Release v$(VERSION) published ==="
 	@echo "https://github.com/$$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/v$(VERSION)"
+
+wt-new: ## Create worktree + Claude session (usage: make wt-new b=feature/foo [base=main])
+	@bash $(SCRIPT_DIR)/worktree-session.sh new "$(b)" $(if $(base),$(base))
+
+wt-list: ## List active worktrees
+	@bash $(SCRIPT_DIR)/worktree-session.sh list
+
+wt-remove: ## Remove a worktree (usage: make wt-remove b=feature/foo)
+	@bash $(SCRIPT_DIR)/worktree-session.sh remove "$(b)"
+
+wt-clean: ## Remove all worktrees
+	@bash $(SCRIPT_DIR)/worktree-session.sh clean
+
+wt-parallel: ## Launch parallel Claude sessions (usage: make wt-parallel branches="feat/a feat/b fix/c")
+	@bash $(SCRIPT_DIR)/worktree-session.sh parallel $(branches)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
