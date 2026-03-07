@@ -19,5 +19,8 @@ screenshots/history/*
 *.iml
 .cursor/skills/
 
+# Docs (local development plans)
+docs/
+
 # OS
 .DS_Store
