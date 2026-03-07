@@ -64,6 +64,10 @@ compose.desktop {
 
             linux {
                 iconFile.set(project.file("src/main/resources/icon.png"))
+                debMaintainer = "abuhamza@users.noreply.github.com"
+                menuGroup = "Utility"
+                appCategory = "utils"
+                shortcut = true
             }
 
             windows {
