@@ -22,5 +22,8 @@ screenshots/history/*
 # Docs (local development plans)
 docs/
 
+# Worktrees
+.worktrees/
+
 # OS
 .DS_Store
