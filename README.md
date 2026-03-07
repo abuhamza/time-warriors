@@ -30,6 +30,28 @@ A modern desktop GUI for [Timewarrior](https://timewarrior.net/), built with Com
 
 Grab the latest `.dmg` from the [Releases](../../releases) page.
 
+### Debian/Ubuntu (apt)
+
+```bash
+# Add the signing key
+curl -fsSL https://abuhamza.github.io/time-warriors/public.key \
+  | sudo gpg --dearmor -o /usr/share/keyrings/timewgui.gpg
+
+# Add the repository
+echo "deb [signed-by=/usr/share/keyrings/timewgui.gpg arch=amd64] https://abuhamza.github.io/time-warriors stable main" \
+  | sudo tee /etc/apt/sources.list.d/timewgui.list
+
+# Install
+sudo apt update && sudo apt install timewgui
+```
+
+### macOS (Homebrew)
+
+```bash
+brew tap abuhamza/time-warriors https://github.com/abuhamza/time-warriors
+brew install --cask timewgui
+```
+
 ### Build from Source
 
 ```bash
