@@ -11,7 +11,7 @@ TimewGUI is a Compose Multiplatform desktop GUI for the [Timewarrior](https://ti
 
 ## Build & Run Commands
 
-The Makefile auto-sets `JAVA_HOME` to OpenJDK 21 (`/opt/homebrew/opt/openjdk@21`).
+The Makefile defaults `JAVA_HOME` to the macOS Homebrew path (`?=`), override with env var on Linux.
 
 ```bash
 make run              # Run in foreground
@@ -19,11 +19,13 @@ make build            # Full build (compile + jar)
 make compile          # Compile only (~12s incremental, ~1.5min full)
 make clean            # Clean build artifacts
 make package-dmg      # Package macOS .dmg
+make package-deb      # Package Linux .deb
+make ship v=X.Y.Z m="msg"  # Commit, push, and release
 ```
 
 Or directly: `./gradlew run`, `./gradlew build`, `./gradlew compileKotlin`
 
-**No test infrastructure exists yet.** When adding tests, place in `src/test/kotlin/` and add test dependencies to `build.gradle.kts`.
+Tests live in `src/test/kotlin/` using JUnit 5, MockK, and kotlinx-coroutines-test. Run with `make test` or `./gradlew test`.
 
 ## Dev Feedback Loop (UI Verification)
 
@@ -48,7 +50,9 @@ AppState (owns TimewCli singleton, navigation, settings)
   ├── TimerViewModel(timewCli, onError)
   ├── TimelineViewModel(timewCli, onError)
   ├── TagViewModel(timewCli)
-  └── IdleViewModel(timewCli, timerViewModel, appState, onError)
+  ├── IdleViewModel(timewCli, timerViewModel, appState, onError)
+  ├── TaskViewModel(taskRepository)
+  └── OvertimeViewModel(timewCli, onError)
 ```
 
 ### Critical Rules
@@ -61,11 +65,13 @@ AppState (owns TimewCli singleton, navigation, settings)
 
 ### Source Layout
 
-- `domain/` — CLI wrapper (`TimewCli.kt`), data models (`Interval.kt`, `TagInfo.kt`), idle detection, launch-at-login
+- `domain/` — CLI wrapper (`TimewCli.kt`), data models (`Interval.kt`, `TagInfo.kt`, `Task.kt`), idle detection, launch-at-login, recurrence engine
+- `domain/api/` — External integrations (absence.io client, Hawk auth)
+- `domain/repository/` — Data persistence (`TaskRepository`)
 - `viewmodel/` — `AppState`, `TimerViewModel`, `TimelineViewModel`, `TagViewModel`, `IdleViewModel`
 - `ui/theme/` — "African Savanna" color palette, typography, dimensions
 - `ui/components/` — reusable composables (Sidebar, TopBar, Timeline, TagSelector, etc.)
-- `ui/screens/` — Dashboard, Timeline, Reports, Tags, Settings
+- `ui/screens/` — Dashboard, Timeline, Reports, Tags, Tasks, Settings
 - `ui/navigation/Screen.kt` — screen enum for routing
 
 ## Theme & Styling

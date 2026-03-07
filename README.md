@@ -22,13 +22,13 @@ A modern desktop GUI for [Timewarrior](https://timewarrior.net/), built with Com
 ## Requirements
 
 - [Timewarrior](https://timewarrior.net/) (`timew`) installed and on PATH
-- JDK 21 (e.g., `brew install openjdk@21`)
+- JDK 21 (e.g., `brew install openjdk@21` on macOS, or `apt install openjdk-21-jdk` on Debian/Ubuntu)
 
 ## Installation
 
 ### Download
 
-Grab the latest `.dmg` from the [Releases](../../releases) page.
+Grab the latest `.dmg`, `.deb`, or `.msi` from the [Releases](https://github.com/abuhamza/time-warriors/releases) page.
 
 ### Debian/Ubuntu (apt)
 
@@ -55,10 +55,12 @@ brew install --cask timewgui
 ### Build from Source
 
 ```bash
-git clone <repo-url> && cd time-warriors
-make run        # Run directly
-make build      # Full build
-make package-dmg  # Package macOS .dmg
+git clone https://github.com/abuhamza/time-warriors.git && cd time-warriors
+make run              # Run directly
+make build            # Full build
+make package-dmg      # Package macOS .dmg
+make package-deb      # Package Linux .deb
+make package-msi      # Package Windows .msi
 ```
 
 ## Architecture
@@ -80,9 +82,12 @@ AppState (owns TimewCli singleton, navigation, settings)
 | Directory | Purpose |
 |-----------|---------|
 | `domain/cli/` | `TimewCli` — sole interface to Timewarrior |
-| `domain/model/` | Data classes: `Interval`, `Task`, `TagInfo`, `ExcludedDateRange` |
-| `domain/api/` | absence.io Hawk authentication |
+| `domain/model/` | Data classes: `Interval`, `Task`, `TagInfo`, `ExcludedDateRange`, `RecurrenceRule` |
+| `domain/api/` | absence.io client and Hawk authentication |
 | `domain/repository/` | File-based task persistence |
+| `domain/idle/` | macOS HID idle detection |
+| `domain/system/` | Launch at Login (macOS Launch Agent) |
+| `domain/` | `RecurrenceEngine` — recurring excluded-date expansion |
 | `viewmodel/` | `AppState` + all ViewModels |
 | `ui/theme/` | African Savanna colors, typography, dimensions |
 | `ui/components/` | Reusable composables (Sidebar, TopBar, Timeline, etc.) |
@@ -118,19 +123,51 @@ Tasks are stored in `~/.config/timewgui/tasks.json`.
 make run              # Run in foreground
 make compile          # Compile (~12s incremental)
 make test             # Run all tests
-make dev-feedback     # Full cycle: stop → run-bg → wait → screenshot
+make dev-feedback     # Full cycle: stop -> run-bg -> wait -> screenshot
 make clean            # Clean build artifacts
 make help             # Show all targets
 ```
 
+### CI/CD
+
+GitHub Actions runs on every push and PR against `main`:
+
+- **Build & test** on macOS, Ubuntu, and Windows
+- **Package** `.dmg`, `.deb`, and `.msi` on tagged releases (`v*`)
+- **Publish** a GitHub Release with all three packages
+- **Update** the Homebrew Cask and Debian APT repository automatically
+
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes (follow existing patterns — MVVM, CLI-as-backend, African Savanna theme)
-4. Run `make test` to verify all tests pass
-5. Submit a pull request
+Contributions are welcome! Here's how to get started:
 
-## License
+### Getting Set Up
 
-See [LICENSE](LICENSE) for details.
+1. Fork the repository and clone your fork
+2. Install [Timewarrior](https://timewarrior.net/) (`timew`) and JDK 21
+3. Run `make run` to verify the app starts
+4. Run `make test` to verify tests pass
+
+### Making Changes
+
+1. Create a feature branch from `main`
+2. Follow existing patterns:
+   - **MVVM** — UI logic lives in ViewModels, not composables
+   - **CLI-as-backend** — all Timewarrior interaction goes through `TimewCli.kt`
+   - **African Savanna theme** — use `TimewTheme.colors` for custom color tokens, not `MaterialTheme.colorScheme`
+3. All `TimewCli` methods return `Result<T>` — handle both success and failure
+4. After any data mutation, call `refreshIntervals()` on `TimelineViewModel`
+5. Add tests for new logic in `src/test/kotlin/`
+
+### Submitting
+
+1. Run `make test` to verify all tests pass
+2. Run `make compile` to check for warnings
+3. Submit a pull request against `main` with a clear description of what and why
+
+### Code Style
+
+- Kotlin official code style (`kotlin.code.style=official`)
+- Keep composables focused — extract reusable components to `ui/components/`
+- Use `Dispatchers.IO` for CLI calls, `Dispatchers.Main.immediate` for UI state
+- Prefer `Canvas`-based rendering for timeline visualizations
