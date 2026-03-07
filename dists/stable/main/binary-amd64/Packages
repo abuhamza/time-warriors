@@ -30,3 +30,19 @@ Section: utils
 Priority: optional
 Description: A modern desktop GUI for Timewarrior
 
+Package: timewgui
+Version: 1.2.7
+Architecture: amd64
+Maintainer: Unknown <abuhamza@users.noreply.github.com>
+Installed-Size: 182446
+Depends: libasound2, libbrotli1, libbsd0, libc6, libexpat1, libfontconfig1, libfreetype6, libgcc-s1, libgl1, libglvnd0, libglx0, libmd0, libpng16-16, libstdc++6, libuuid1, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6, libxi6, libxrender1, libxtst6, xdg-utils, zlib1g , timewarrior
+Provides: timewgui
+Filename: pool/main/t/timewgui/TimewGUI-1.2.7.deb
+Size: 91302786
+MD5sum: 9309a8e95462fa0d49330f7d83349cac
+SHA1: d542e5bf0eb5bdc78872b602a1a2dc863d672a52
+SHA256: 3d776c454149e2a5e69de1c8ecd5acf5cbb1eae8801915d89e5ee14a4ece8af1
+Section: utils
+Priority: optional
+Description: A modern desktop GUI for Timewarrior
+
