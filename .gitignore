@@ -22,9 +22,5 @@ screenshots/history/*
 # Docs (local development plans)
 docs/
 
-# Setup artifacts
-1password-archive-keyring-cli.gpg
-param
-
 # OS
 .DS_Store
