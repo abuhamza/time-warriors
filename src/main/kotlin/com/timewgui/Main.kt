@@ -46,6 +46,7 @@ import com.timewgui.ui.screens.TasksScreen
 import com.timewgui.ui.screens.TimelineScreen
 import com.timewgui.ui.theme.TimewGuiTheme
 import com.timewgui.domain.repository.TaskRepository
+import com.timewgui.domain.api.AiToolsClient
 import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.IdleViewModel
 import com.timewgui.viewmodel.OvertimeViewModel
@@ -82,13 +83,16 @@ fun main() {
     }
     val tagViewModel = remember { TagViewModel(appState.timewCli) }
     val taskRepository = remember { TaskRepository() }
-    val aiToolsClient = remember(appState.apiToken, appState.apiBaseUrl) {
-        if (appState.apiToken.isNotBlank()) {
-            com.timewgui.domain.api.AiToolsClient(appState.apiBaseUrl, appState.apiToken)
-        } else null
+    val taskViewModel = remember {
+        TaskViewModel(taskRepository, appState.timewCli) { appState.showError(it) }
     }
-    val taskViewModel = remember(aiToolsClient) {
-        TaskViewModel(taskRepository, appState.timewCli, aiToolsClient) { appState.showError(it) }
+
+    // Update AI client when credentials change
+    LaunchedEffect(appState.apiToken, appState.apiBaseUrl) {
+        val client = if (appState.apiToken.isNotBlank()) {
+            AiToolsClient(appState.apiBaseUrl, appState.apiToken)
+        } else null
+        taskViewModel.updateAiClient(client)
     }
     val overtimeViewModel = remember {
         OvertimeViewModel(appState.timewCli, appState) { appState.showError(it) }

@@ -21,9 +21,14 @@ import kotlin.time.Duration
 class TaskViewModel(
     private val taskRepository: TaskRepository,
     private val timewCli: TimewCli,
-    private val aiToolsClient: AiToolsClient? = null,
     private val onError: (String) -> Unit = {}
 ) {
+    private var aiToolsClient: AiToolsClient? = null
+
+    fun updateAiClient(client: AiToolsClient?) {
+        aiToolsClient = client
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     var tasks: List<Task> by mutableStateOf(emptyList())

@@ -131,7 +131,8 @@ class TaskViewModelTest {
                 ))
             }
         }
-        val vm = TaskViewModel(taskRepository, stubCli, aiToolsClient = mockClient)
+        val vm = TaskViewModel(taskRepository, stubCli)
+        vm.updateAiClient(mockClient)
         advanceUntilIdle()
 
         vm.generateTasksFromBrainDump("I need to buy groceries and finish the report")
@@ -166,7 +167,7 @@ class TaskViewModelTest {
 
     @Test
     fun `generateTasksFromBrainDump sets error when client not configured`() = runTest(testDispatcher) {
-        val vm = TaskViewModel(taskRepository, stubCli, aiToolsClient = null)
+        val vm = TaskViewModel(taskRepository, stubCli)
         advanceUntilIdle()
 
         vm.generateTasksFromBrainDump("some text")

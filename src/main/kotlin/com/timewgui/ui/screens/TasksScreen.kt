@@ -188,7 +188,10 @@ fun TasksScreen(
                 }
                 Button(
                     onClick = { showCreateForm = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.accent,
+                        contentColor = colors.bgPrimary
+                    ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("+ New Task")
@@ -200,7 +203,13 @@ fun TasksScreen(
 
         // Brain dump input section
         if (showBrainDump && taskViewModel.generatedTasks.isEmpty()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(TimewDimensions.borderRadiusCard))
+                    .background(colors.cardSurface)
+                    .padding(16.dp)
+            ) {
                 OutlinedTextField(
                     value = brainDumpText,
                     onValueChange = { brainDumpText = it },
@@ -255,7 +264,13 @@ fun TasksScreen(
                 mutableStateListOf<GeneratedTask>().apply { addAll(taskViewModel.generatedTasks) }
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(TimewDimensions.borderRadiusCard))
+                    .background(colors.cardSurface)
+                    .padding(16.dp)
+            ) {
                 Text("Generated Tasks", style = MaterialTheme.typography.titleSmall, color = colors.textOnCardPrimary)
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -267,7 +282,7 @@ fun TasksScreen(
                         Checkbox(
                             checked = index in selectedIndices,
                             onCheckedChange = { checked ->
-                                if (checked) selectedIndices.add(index) else selectedIndices.remove(index)
+                                if (checked) selectedIndices.add(index) else selectedIndices.removeAll { it == index }
                             },
                             colors = CheckboxDefaults.colors(
                                 checkedColor = colors.accent,

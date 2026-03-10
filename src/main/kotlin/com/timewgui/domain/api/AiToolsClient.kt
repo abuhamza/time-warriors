@@ -14,7 +14,9 @@ open class AiToolsClient(
     private val baseUrl: String,
     private val token: String
 ) {
-    private val httpClient = HttpClient.newHttpClient()
+    private val httpClient = HttpClient.newBuilder()
+        .connectTimeout(java.time.Duration.ofSeconds(10))
+        .build()
     private val json = Json { ignoreUnknownKeys = true }
 
     open suspend fun generateTasks(text: String, existingTags: List<String>): Result<List<GeneratedTask>> =
@@ -35,6 +37,7 @@ open class AiToolsClient(
             .uri(URI.create("$baseUrl$path"))
             .header("Content-Type", "application/json")
             .header("Authorization", "Bearer $token")
+            .timeout(java.time.Duration.ofSeconds(30))
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
 
