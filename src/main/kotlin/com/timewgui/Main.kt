@@ -82,8 +82,13 @@ fun main() {
     }
     val tagViewModel = remember { TagViewModel(appState.timewCli) }
     val taskRepository = remember { TaskRepository() }
-    val taskViewModel = remember {
-        TaskViewModel(taskRepository, appState.timewCli) { appState.showError(it) }
+    val aiToolsClient = remember(appState.apiToken, appState.apiBaseUrl) {
+        if (appState.apiToken.isNotBlank()) {
+            com.timewgui.domain.api.AiToolsClient(appState.apiBaseUrl, appState.apiToken)
+        } else null
+    }
+    val taskViewModel = remember(aiToolsClient) {
+        TaskViewModel(taskRepository, appState.timewCli, aiToolsClient) { appState.showError(it) }
     }
     val overtimeViewModel = remember {
         OvertimeViewModel(appState.timewCli, appState) { appState.showError(it) }
