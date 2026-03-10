@@ -4,7 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.timewgui.domain.RecurrenceEngine
+import com.timewgui.domain.api.AiToolsClient
 import com.timewgui.domain.cli.TimewCli
+import com.timewgui.domain.model.GeneratedTask
 import com.timewgui.domain.model.RecurrenceRule
 import com.timewgui.domain.model.Task
 import com.timewgui.domain.model.TaskStatus
@@ -19,6 +21,7 @@ import kotlin.time.Duration
 class TaskViewModel(
     private val taskRepository: TaskRepository,
     private val timewCli: TimewCli,
+    private val aiToolsClient: AiToolsClient? = null,
     private val onError: (String) -> Unit = {}
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -28,6 +31,12 @@ class TaskViewModel(
     var timePerTask: Map<String, Duration> by mutableStateOf(emptyMap())
         private set
     var isLoadingTime: Boolean by mutableStateOf(false)
+        private set
+    var generatedTasks: List<GeneratedTask> by mutableStateOf(emptyList())
+        private set
+    var isGenerating: Boolean by mutableStateOf(false)
+        private set
+    var generationError: String? by mutableStateOf(null)
         private set
 
     init {
@@ -184,6 +193,52 @@ class TaskViewModel(
                     isLoadingTime = false
                 }
         }
+    }
+
+    fun generateTasksFromBrainDump(text: String) {
+        val client = aiToolsClient ?: run {
+            generationError = "API not configured. Set API URL and token in Settings."
+            return
+        }
+        isGenerating = true
+        generationError = null
+        generatedTasks = emptyList()
+        scope.launch {
+            val existingTags = tasks.flatMap { it.contextTags }.distinct()
+            client.generateTasks(text, existingTags)
+                .onSuccess { result ->
+                    generatedTasks = result
+                    isGenerating = false
+                }
+                .onFailure { e ->
+                    generationError = e.message ?: "Failed to generate tasks"
+                    isGenerating = false
+                }
+        }
+    }
+
+    fun createTasksFromGenerated(selectedTasks: List<GeneratedTask>) {
+        for (generated in selectedTasks) {
+            val tag = taskRepository.generateTag(generated.title)
+            val task = Task(
+                id = java.util.UUID.randomUUID().toString(),
+                title = generated.title,
+                tag = tag,
+                contextTags = generated.tags,
+                status = TaskStatus.TODO,
+                createdAt = System.currentTimeMillis(),
+                sortOrder = tasks.size
+            )
+            tasks = tasks + task
+        }
+        saveTasks()
+        clearBrainDump()
+    }
+
+    fun clearBrainDump() {
+        generatedTasks = emptyList()
+        generationError = null
+        isGenerating = false
     }
 
     private fun saveTasks() {
