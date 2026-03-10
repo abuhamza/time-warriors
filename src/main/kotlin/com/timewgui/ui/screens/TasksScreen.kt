@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.timewgui.domain.model.GeneratedTask
 import com.timewgui.domain.model.RecurrenceEndType
 import com.timewgui.domain.model.RecurrenceFrequency
 import com.timewgui.domain.model.RecurrenceRule
@@ -63,6 +65,8 @@ fun TasksScreen(
     var showCreateForm by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(TaskTab.ALL) }
     var newTaskTitle by remember { mutableStateOf("") }
+    var showBrainDump by remember { mutableStateOf(false) }
+    var brainDumpText by remember { mutableStateOf("") }
 
     // Recurring create-form state
     var isRecurring by remember { mutableStateOf(false) }
@@ -165,16 +169,165 @@ fun TasksScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 color = colors.textPrimary
             )
-            Button(
-                onClick = { showCreateForm = true },
-                colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("+ New Task")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { showBrainDump = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.accent,
+                        contentColor = colors.bgPrimary
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Plan Todo",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Plan Todo")
+                }
+                Button(
+                    onClick = { showCreateForm = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("+ New Task")
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(TimewDimensions.sectionGap))
+
+        // Brain dump input section
+        if (showBrainDump && taskViewModel.generatedTasks.isEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                OutlinedTextField(
+                    value = brainDumpText,
+                    onValueChange = { brainDumpText = it },
+                    placeholder = { Text("What's on your mind? Describe your day, tasks, appointments...", color = colors.textOnCardTertiary) },
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    enabled = !taskViewModel.isGenerating,
+                    maxLines = 6,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.borderOnCard,
+                        cursorColor = colors.accent
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { taskViewModel.generateTasksFromBrainDump(brainDumpText) },
+                        enabled = brainDumpText.isNotBlank() && !taskViewModel.isGenerating,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.accent,
+                            contentColor = colors.bgPrimary
+                        )
+                    ) {
+                        if (taskViewModel.isGenerating) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = colors.bgPrimary, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(if (taskViewModel.isGenerating) "Generating..." else "Generate")
+                    }
+                    TextButton(onClick = {
+                        showBrainDump = false
+                        brainDumpText = ""
+                        taskViewModel.clearBrainDump()
+                    }) {
+                        Text("Cancel", color = colors.textOnCardSecondary)
+                    }
+                }
+                taskViewModel.generationError?.let { error ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(error, color = colors.destructive, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        // Generated tasks preview/confirmation section
+        if (taskViewModel.generatedTasks.isNotEmpty()) {
+            val selectedIndices = remember(taskViewModel.generatedTasks) {
+                mutableStateListOf<Int>().apply { addAll(taskViewModel.generatedTasks.indices) }
+            }
+            val editedTasks = remember(taskViewModel.generatedTasks) {
+                mutableStateListOf<GeneratedTask>().apply { addAll(taskViewModel.generatedTasks) }
+            }
+
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("Generated Tasks", style = MaterialTheme.typography.titleSmall, color = colors.textOnCardPrimary)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                editedTasks.forEachIndexed { index, task ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Checkbox(
+                            checked = index in selectedIndices,
+                            onCheckedChange = { checked ->
+                                if (checked) selectedIndices.add(index) else selectedIndices.remove(index)
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = colors.accent,
+                                uncheckedColor = colors.textOnCardSecondary
+                            )
+                        )
+                        OutlinedTextField(
+                            value = task.title,
+                            onValueChange = { newTitle -> editedTasks[index] = task.copy(title = newTitle) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = colors.accent,
+                                unfocusedBorderColor = colors.borderOnCard,
+                                cursorColor = colors.accent
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        task.tags.forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(colors.accent.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(tag, style = MaterialTheme.typography.labelSmall, color = colors.accent)
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val selected = selectedIndices.map { editedTasks[it] }
+                            taskViewModel.createTasksFromGenerated(selected)
+                            showBrainDump = false
+                            brainDumpText = ""
+                        },
+                        enabled = selectedIndices.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.accent,
+                            contentColor = colors.bgPrimary
+                        )
+                    ) {
+                        Text("Create ${selectedIndices.size} Task${if (selectedIndices.size != 1) "s" else ""}")
+                    }
+                    TextButton(onClick = {
+                        taskViewModel.clearBrainDump()
+                        showBrainDump = false
+                        brainDumpText = ""
+                    }) {
+                        Text("Cancel", color = colors.textOnCardSecondary)
+                    }
+                }
+            }
+        }
 
         // Create form
         if (showCreateForm) {
