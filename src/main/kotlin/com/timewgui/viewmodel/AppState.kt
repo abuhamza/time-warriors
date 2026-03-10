@@ -56,6 +56,9 @@ class AppState {
     var absenceIoKeySecret: String by mutableStateOf(prefs.get(PREF_ABSENCE_IO_KEY_SECRET, ""))
     var absenceIoLastSync: String by mutableStateOf(prefs.get(PREF_ABSENCE_IO_LAST_SYNC, ""))
 
+    var apiBaseUrl: String by mutableStateOf(prefs.get(PREF_API_BASE_URL, "https://ai.aitconsulting.agency"))
+    var apiToken: String by mutableStateOf(prefs.get(PREF_API_TOKEN, ""))
+
     val timewCli: TimewCli = TimewCli()
 
     fun navigateTo(screen: Screen) {
@@ -159,6 +162,16 @@ class AppState {
         prefs.put(PREF_ABSENCE_IO_LAST_SYNC, timestamp)
     }
 
+    fun updateApiBaseUrl(url: String) {
+        apiBaseUrl = url
+        prefs.put(PREF_API_BASE_URL, url)
+    }
+
+    fun updateApiToken(token: String) {
+        apiToken = token
+        prefs.put(PREF_API_TOKEN, token)
+    }
+
     private fun loadOvertimeStartDate(): LocalDate {
         val raw = prefs.get(PREF_OVERTIME_START_DATE, "")
         return if (raw.isBlank()) {
@@ -222,5 +235,7 @@ class AppState {
         private const val PREF_ABSENCE_IO_KEY_ID = "absence_io_key_id"
         private const val PREF_ABSENCE_IO_KEY_SECRET = "absence_io_key_secret"
         private const val PREF_ABSENCE_IO_LAST_SYNC = "absence_io_last_sync"
+        private const val PREF_API_BASE_URL = "api_base_url"
+        private const val PREF_API_TOKEN = "api_token"
     }
 }
