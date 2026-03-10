@@ -185,6 +185,17 @@ fun TasksScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Plan Todo")
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = colors.bgPrimary.copy(alpha = 0.3f),
+                    ) {
+                        Text(
+                            "Beta",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
                 }
                 Button(
                     onClick = { showCreateForm = true },
