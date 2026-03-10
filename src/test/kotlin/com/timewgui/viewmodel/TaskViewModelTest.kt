@@ -1,5 +1,7 @@
 package com.timewgui.viewmodel
 
+import com.timewgui.domain.api.AiToolsClient
+import com.timewgui.domain.model.GeneratedTask
 import com.timewgui.domain.model.Task
 import com.timewgui.domain.model.TaskStatus
 import com.timewgui.domain.repository.TaskRepository
@@ -117,5 +119,61 @@ class TaskViewModelTest {
 
         assertEquals(1, vm.tasks.size)
         assertTrue(vm.tasks.none { it.id == taskToDelete })
+    }
+
+    @Test
+    fun `generateTasksFromBrainDump sets generatedTasks on success`() = runTest(testDispatcher) {
+        val mockClient = object : AiToolsClient("http://test", "token") {
+            override suspend fun generateTasks(text: String, existingTags: List<String>): Result<List<GeneratedTask>> {
+                return Result.success(listOf(
+                    GeneratedTask("Buy groceries", listOf("errands")),
+                    GeneratedTask("Finish report", listOf("work")),
+                ))
+            }
+        }
+        val vm = TaskViewModel(taskRepository, stubCli, aiToolsClient = mockClient)
+        advanceUntilIdle()
+
+        vm.generateTasksFromBrainDump("I need to buy groceries and finish the report")
+        advanceUntilIdle()
+
+        assertEquals(2, vm.generatedTasks.size)
+        assertEquals("Buy groceries", vm.generatedTasks[0].title)
+        assertEquals(false, vm.isGenerating)
+        assertNull(vm.generationError)
+    }
+
+    @Test
+    fun `createTasksFromGenerated converts GeneratedTasks to Tasks`() = runTest(testDispatcher) {
+        val vm = TaskViewModel(taskRepository, stubCli)
+        advanceUntilIdle()
+
+        val generated = listOf(
+            GeneratedTask("Buy groceries", listOf("errands")),
+            GeneratedTask("Call mom", listOf("family")),
+        )
+        vm.createTasksFromGenerated(generated)
+        advanceUntilIdle()
+
+        assertEquals(2, vm.tasks.size)
+        assertEquals("Buy groceries", vm.tasks[0].title)
+        assertEquals("task:buy-groceries", vm.tasks[0].tag)
+        assertEquals(listOf("errands"), vm.tasks[0].contextTags)
+        assertEquals(TaskStatus.TODO, vm.tasks[0].status)
+        assertEquals("Call mom", vm.tasks[1].title)
+        assertEquals(listOf("family"), vm.tasks[1].contextTags)
+    }
+
+    @Test
+    fun `generateTasksFromBrainDump sets error when client not configured`() = runTest(testDispatcher) {
+        val vm = TaskViewModel(taskRepository, stubCli, aiToolsClient = null)
+        advanceUntilIdle()
+
+        vm.generateTasksFromBrainDump("some text")
+        advanceUntilIdle()
+
+        assertNotNull(vm.generationError)
+        assertTrue(vm.generationError!!.contains("not configured"))
+        assertEquals(false, vm.isGenerating)
     }
 }
