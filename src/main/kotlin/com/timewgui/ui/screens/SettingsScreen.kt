@@ -825,5 +825,70 @@ fun SettingsScreen(
                 }
             }
         }
+
+        // AI Integration card
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(TimewDimensions.borderRadiusCard))
+                .background(colors.cardSurface)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "AI Integration",
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.textOnCardPrimary,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "Connect to the AI backend for the Plan Todo feature",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textOnCardSecondary,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            var apiUrlText by remember(appState.apiBaseUrl) {
+                mutableStateOf(appState.apiBaseUrl)
+            }
+            OutlinedTextField(
+                value = apiUrlText,
+                onValueChange = {
+                    apiUrlText = it
+                    appState.updateApiBaseUrl(it)
+                },
+                label = { Text("API URL", color = colors.textOnCardSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colors.accent,
+                    unfocusedBorderColor = colors.borderOnCard,
+                    cursorColor = colors.accent
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var apiTokenText by remember(appState.apiToken) {
+                mutableStateOf(appState.apiToken)
+            }
+            OutlinedTextField(
+                value = apiTokenText,
+                onValueChange = {
+                    apiTokenText = it
+                    appState.updateApiToken(it)
+                },
+                label = { Text("API Token", color = colors.textOnCardSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.textOnCardPrimary),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colors.accent,
+                    unfocusedBorderColor = colors.borderOnCard,
+                    cursorColor = colors.accent
+                )
+            )
+        }
     }
 }
