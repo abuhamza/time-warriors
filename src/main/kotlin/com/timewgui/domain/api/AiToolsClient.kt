@@ -36,7 +36,7 @@ open class AiToolsClient(
         val request = HttpRequest.newBuilder()
             .uri(URI.create("$baseUrl$path"))
             .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer $token")
+            .header("Authorization", token)
             .timeout(java.time.Duration.ofSeconds(30))
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
