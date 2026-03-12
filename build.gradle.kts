@@ -54,6 +54,7 @@ compose.desktop {
         }
 
         nativeDistributions {
+            modules("java.net.http")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "TimewGUI"
             packageVersion = project.findProperty("appVersion") as String

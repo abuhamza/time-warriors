@@ -151,8 +151,8 @@ fun TasksScreen(
             .padding(TimewDimensions.sectionGap)
             .focusRequester(screenFocusRequester)
             .focusable()
-            .onPreviewKeyEvent { keyEvent ->
-                if (!showCreateForm && keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.N) {
+            .onKeyEvent { keyEvent ->
+                if (!showCreateForm && !showBrainDump && keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.N) {
                     showCreateForm = true
                     true
                 } else false
