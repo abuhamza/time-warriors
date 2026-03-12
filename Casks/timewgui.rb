@@ -1,6 +1,6 @@
 cask "timewgui" do
-  version "1.3.1"
-  sha256 "2c8fd88a3e2d0bdb70db722209d533446da840cfd5fc38d61962ee66908fe6a2"
+  version "1.4.0"
+  sha256 "325820a1b582c5803ab584051efac8ca4c23bf5bb00566cea5481aa3945e6856"
 
   url "https://github.com/abuhamza/time-warriors/releases/download/v#{version}/TimewGUI-#{version}.dmg"
   name "TimewGUI"
