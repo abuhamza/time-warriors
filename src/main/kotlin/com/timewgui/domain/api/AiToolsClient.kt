@@ -1,5 +1,7 @@
 package com.timewgui.domain.api
 
+import com.timewgui.domain.model.SummaryRequest
+import com.timewgui.domain.model.SummaryResponse
 import com.timewgui.domain.model.GeneratedTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,6 +20,16 @@ open class AiToolsClient(
         .connectTimeout(java.time.Duration.ofSeconds(10))
         .build()
     private val json = Json { ignoreUnknownKeys = true }
+
+    open suspend fun generateSummary(request: SummaryRequest): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val requestBody = json.encodeToString(SummaryRequest.serializer(), request)
+                val response = post("/api/ai/summary", requestBody)
+                val parsed = json.decodeFromString<SummaryResponse>(response)
+                parsed.summary
+            }
+        }
 
     open suspend fun generateTasks(text: String, existingTags: List<String>): Result<List<GeneratedTask>> =
         withContext(Dispatchers.IO) {

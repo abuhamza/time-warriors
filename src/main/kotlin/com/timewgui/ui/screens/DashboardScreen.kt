@@ -35,12 +35,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.timewgui.domain.model.ExcludedDateRange
 import com.timewgui.domain.model.Interval
+import com.timewgui.ui.components.SummaryCard
 import com.timewgui.ui.components.IntervalList
 import com.timewgui.ui.components.OvertimeCard
 import com.timewgui.ui.components.ProgressIndicator
 import com.timewgui.ui.components.UnreviewedDaysDialog
 import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
+import com.timewgui.viewmodel.SummaryViewModel
 import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.OvertimeViewModel
 import com.timewgui.viewmodel.TagViewModel
@@ -59,7 +61,9 @@ fun DashboardScreen(
     timelineViewModel: TimelineViewModel,
     tagViewModel: TagViewModel,
     overtimeViewModel: OvertimeViewModel,
+    aiSummaryViewModel: SummaryViewModel,
     appState: AppState,
+    tasks: List<com.timewgui.domain.model.Task>,
     onStartTimer: () -> Unit,
     onContinueInterval: (Interval) -> Unit,
     modifier: Modifier = Modifier
@@ -142,6 +146,15 @@ fun DashboardScreen(
                     .padding(bottom = 4.dp)
             )
         }
+
+        SummaryCard(
+            viewModel = aiSummaryViewModel,
+            intervals = timelineViewModel.intervals,
+            tasks = tasks,
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 4.dp)
+        )
 
         // Period tabs
         Row(

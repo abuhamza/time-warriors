@@ -47,6 +47,7 @@ import com.timewgui.ui.screens.TimelineScreen
 import com.timewgui.ui.theme.TimewGuiTheme
 import com.timewgui.domain.repository.TaskRepository
 import com.timewgui.domain.api.AiToolsClient
+import com.timewgui.viewmodel.SummaryViewModel
 import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.IdleViewModel
 import com.timewgui.viewmodel.OvertimeViewModel
@@ -93,6 +94,9 @@ fun main() {
             AiToolsClient(appState.apiBaseUrl, appState.apiToken)
         } else null
         taskViewModel.updateAiClient(client)
+    }
+    val aiSummaryViewModel = remember {
+        SummaryViewModel(appState) { appState.showError(it) }
     }
     val overtimeViewModel = remember {
         OvertimeViewModel(appState.timewCli, appState) { appState.showError(it) }
@@ -268,7 +272,9 @@ fun main() {
                             timelineViewModel = timelineViewModel,
                             tagViewModel = tagViewModel,
                             overtimeViewModel = overtimeViewModel,
+                            aiSummaryViewModel = aiSummaryViewModel,
                             appState = appState,
+                            tasks = taskViewModel.tasks,
                             onStartTimer = { showStartTimerDialog = true },
                             onContinueInterval = { interval ->
                                 timerViewModel.continueTimer(interval.id)
