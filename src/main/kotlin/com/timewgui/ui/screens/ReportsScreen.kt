@@ -46,8 +46,14 @@ import kotlin.time.Duration
 sealed class ReportRange {
     data object Today : ReportRange()
     data object Week : ReportRange()
+
+    data object LastWeek : ReportRange()
     data object Month : ReportRange()
+
+    data object LastMonth: ReportRange()
     data object Year : ReportRange()
+
+    data object LastYear: ReportRange()
 }
 
 @Composable
@@ -70,13 +76,28 @@ fun ReportsScreen(
                 val start = today.minus(DatePeriod(days = daysSinceMonday))
                 start to start.plus(DatePeriod(days = 6))
             }
+            is ReportRange.LastWeek -> {
+                val daysSinceMonday = today.dayOfWeek.ordinal
+                val start = today.minus(DatePeriod(days = daysSinceMonday)).minus(DatePeriod(days = 7))
+                start to start.plus(DatePeriod(days = 6))
+            }
             is ReportRange.Month -> {
                 val start = LocalDate(today.year, today.month, 1)
                 val end = start.plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
                 start to end
             }
+            is ReportRange.LastMonth -> {
+                val start = LocalDate(today.year, today.month, 1).minus(DatePeriod(months = 1))
+                val end = start.plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
+                start to end
+            }
             is ReportRange.Year -> {
                 val start = LocalDate(today.year, 1, 1)
+                val end = start.plus(DatePeriod(years = 1)).minus(DatePeriod(days = 1))
+                start to end
+            }
+            is ReportRange.LastYear -> {
+                val start = LocalDate(today.year, 1, 1).minus(DatePeriod(years = 1))
                 val end = start.plus(DatePeriod(years = 1)).minus(DatePeriod(days = 1))
                 start to end
             }
@@ -120,8 +141,11 @@ fun ReportsScreen(
             listOf(
                 ":today" to ReportRange.Today,
                 ":week" to ReportRange.Week,
+                ":lastweek" to ReportRange.LastWeek,
                 ":month" to ReportRange.Month,
+                ":lastmonth" to ReportRange.LastMonth,
                 ":year" to ReportRange.Year,
+                ":lastyear" to ReportRange.LastYear
             ).forEach { (label, r) ->
                 Button(
                     onClick = { range = r },
