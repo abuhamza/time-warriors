@@ -37,11 +37,21 @@ import com.timewgui.viewmodel.TimelineViewModel
 import com.timewgui.viewmodel.ViewMode
 import com.timewgui.viewmodel.TagViewModel
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
+
+
+private fun Instant.toTimewString(tz: TimeZone=TimeZone.currentSystemDefault()): String {
+    val ldt = this.toLocalDateTime(tz)
+    val dateStr = "%04d%02d%02d".format(ldt.year, ldt.month.number, ldt.day)
+    val timeStr = "%02d%02d%02d".format(ldt.hour, ldt.minute, ldt.second)
+    return "${dateStr}T$timeStr"
+}
+
 
 @Composable
 fun TimelineScreen(
@@ -175,7 +185,10 @@ fun TimelineScreen(
                             intervals = timelineViewModel.intervals,
                             tagColors = tagColorsMap,
                             onIntervalSelected = { selectedInterval = it },
-                            onGapClicked = { _, _ -> }
+                            onGapClicked = { gapStartInstant, gapEndInstant ->
+                                timelineViewModel.createIntervalForGap(gapStartInstant.toTimewString(), gapEndInstant.toTimewString(),
+                                    List(0) { "" } )
+                            }
                         )
                         Column(
                             modifier = Modifier

@@ -178,6 +178,18 @@ class TimelineViewModel(
         }
     }
 
+    /**
+     * Create a new interval in the given free gap.
+     * Uses the whole gap as [start, end).
+     */
+    fun createIntervalForGap(start: String, end: String, tags: List<String>) {
+        scope.launch {
+            timewCli.track(start, end, tags)
+                .onSuccess { refreshIntervals() }
+                .onFailure { e -> onError(e.message ?: "Failed to create interval") }
+        }
+    }
+
     fun getIntervalsForDate(date: LocalDate): List<Interval> {
         val tz = TimeZone.currentSystemDefault()
         val dayStart = date.atStartOfDayIn(tz)
