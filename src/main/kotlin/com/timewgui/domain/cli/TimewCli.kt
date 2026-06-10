@@ -2,6 +2,8 @@ package com.timewgui.domain.cli
 
 import com.timewgui.domain.model.Interval
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
@@ -57,39 +59,42 @@ open class TimewCli(
         }
     }
     private val json = Json { ignoreUnknownKeys = true }
+    private val executeMutex = Mutex()
 
     /**
      * Executes a timew command and captures stdout/stderr.
      */
     private suspend fun execute(vararg args: String): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val process = ProcessBuilder(listOf(timewCommand) + args)
-                .redirectErrorStream(true)
-                .directory(workingDirectory)
-                .start()
+        executeMutex.withLock {
+            try {
+                val process = ProcessBuilder(listOf(timewCommand) + args)
+                    .redirectErrorStream(true)
+                    .directory(workingDirectory)
+                    .start()
 
-            val stdout = BufferedReader(InputStreamReader(process.inputStream))
-                .use { it.readText() }
+                val stdout = BufferedReader(InputStreamReader(process.inputStream))
+                    .use { it.readText() }
 
-            val exitCode = process.waitFor(30, TimeUnit.SECONDS)
-            if (exitCode) {
-                Result.success(stdout.trim())
-            } else {
+                val exitCode = process.waitFor(30, TimeUnit.SECONDS)
+                if (exitCode) {
+                    Result.success(stdout.trim())
+                } else {
+                    Result.failure(
+                        TimewException(
+                            "timew ${args.joinToString(" ")} failed with exit code $exitCode",
+                            stdout.trim()
+                        )
+                    )
+                }
+            } catch (e: Exception) {
                 Result.failure(
                     TimewException(
-                        "timew ${args.joinToString(" ")} failed with exit code $exitCode",
-                        stdout.trim()
+                        "Failed to execute timew: ${e.message}",
+                        null,
+                        e
                     )
                 )
             }
-        } catch (e: Exception) {
-            Result.failure(
-                TimewException(
-                    "Failed to execute timew: ${e.message}",
-                    null,
-                    e
-                )
-            )
         }
     }
 
