@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
@@ -156,26 +157,48 @@ fun ReportsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = "Date",
+                    modifier = Modifier.weight(1.2f),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.textOnCardPrimary
+                )
+                Text(
+                    text = "Start",
+                    modifier = Modifier.weight(0.8f),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.textOnCardPrimary
+                )
+                Text(
+                    text = "End",
+                    modifier = Modifier.weight(0.8f),
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.textOnCardPrimary
                 )
                 Text(
                     text = "Tags",
+                    modifier = Modifier.weight(1.5f),
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.textOnCardPrimary
                 )
                 Text(
                     text = "Duration",
+                    modifier = Modifier.weight(0.9f),
                     style = MaterialTheme.typography.titleSmall,
-                    color = colors.textOnCardPrimary
+                    color = colors.textOnCardPrimary,
+                    textAlign = TextAlign.End
                 )
             }
             reportIntervals.forEach { interval ->
-                val dateStr = interval.start.toLocalDateTime(tz).date.toString()
+                val startLdt = interval.start.toLocalDateTime(tz)
+                val endLdt = interval.end?.toLocalDateTime(tz)
+
+                val dateStr = startLdt.date.toString()
+                val startStr = "%02d:%02d".format(startLdt.hour, startLdt.minute)
+                val endStr = endLdt?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "—"
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -189,22 +212,37 @@ fun ReportsScreen(
                             )
                         }
                         .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = dateStr,
+                        modifier = Modifier.weight(1.2f),
+                        style = TimewTypography.monospace,
+                        color = colors.textOnCardSecondary
+                    )
+                    Text(
+                        text = startStr,
+                        modifier = Modifier.weight(0.8f),
+                        style = TimewTypography.monospace,
+                        color = colors.textOnCardSecondary
+                    )
+                    Text(
+                        text = endStr,
+                        modifier = Modifier.weight(0.8f),
                         style = TimewTypography.monospace,
                         color = colors.textOnCardSecondary
                     )
                     Text(
                         text = interval.tags.joinToString(", ").ifEmpty { "—" },
+                        modifier = Modifier.weight(1.5f),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.textOnCardSecondary
                     )
                     Text(
                         text = interval.durationFormatted,
+                        modifier = Modifier.weight(0.9f),
                         style = TimewTypography.monospace,
-                        color = colors.textOnCardPrimary
+                        color = colors.textOnCardPrimary,
+                        textAlign = TextAlign.End
                     )
                 }
             }
