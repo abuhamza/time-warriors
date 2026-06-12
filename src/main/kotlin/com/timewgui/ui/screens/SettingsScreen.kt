@@ -334,8 +334,14 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = dailyText,
                     onValueChange = { value ->
-                        dailyText = value.filter { it.isDigit() }
-                        dailyText.toIntOrNull()?.let { appState.updateDailyTargetHours(it) }
+                        // allow digits and a single dot as decimal separator
+                        val filtered = value
+                            .filter { it.isDigit() || it == '.' }
+                        dailyText = filtered
+
+                        filtered.toDoubleOrNull()?.let {
+                            appState.updateDailyTargetHours(it)
+                        }
                     },
                     modifier = Modifier.width(72.dp),
                     singleLine = true,
@@ -373,8 +379,13 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = weeklyText,
                     onValueChange = { value ->
-                        weeklyText = value.filter { it.isDigit() }
-                        weeklyText.toIntOrNull()?.let { appState.updateWeeklyTargetHours(it) }
+                        val filtered = value
+                            .filter { it.isDigit() || it == '.' }
+                        weeklyText = filtered
+
+                        filtered.toDoubleOrNull()?.let {
+                            appState.updateWeeklyTargetHours(it)
+                        }
                     },
                     modifier = Modifier.width(72.dp),
                     singleLine = true,
