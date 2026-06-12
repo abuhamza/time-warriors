@@ -37,9 +37,9 @@ class AppState {
 
     var launchAtLogin: Boolean by mutableStateOf(prefs.getBoolean(PREF_LAUNCH_AT_LOGIN, false))
 
-    var dailyTargetHours: Int by mutableStateOf(prefs.getInt(PREF_DAILY_TARGET, 8))
+    var dailyTargetHours: Double by mutableStateOf(prefs.getDouble(PREF_DAILY_TARGET, 8.0))
 
-    var weeklyTargetHours: Int by mutableStateOf(prefs.getInt(PREF_WEEKLY_TARGET, 40))
+    var weeklyTargetHours: Double by mutableStateOf(prefs.getDouble(PREF_WEEKLY_TARGET, 40.0))
 
     var overtimeEnabled: Boolean by mutableStateOf(prefs.getBoolean(PREF_OVERTIME_ENABLED, false))
 
@@ -96,14 +96,14 @@ class AppState {
         prefs.putBoolean(PREF_LAUNCH_AT_LOGIN, enabled)
     }
 
-    fun updateDailyTargetHours(hours: Int) {
-        dailyTargetHours = hours.coerceIn(1, 24)
-        prefs.putInt(PREF_DAILY_TARGET, dailyTargetHours)
+    fun updateDailyTargetHours(hours: Double) {
+        dailyTargetHours = hours.coerceIn(0.0, 24.0)
+        prefs.putDouble(PREF_DAILY_TARGET, dailyTargetHours)
     }
 
-    fun updateWeeklyTargetHours(hours: Int) {
-        weeklyTargetHours = hours.coerceIn(1, 168)
-        prefs.putInt(PREF_WEEKLY_TARGET, weeklyTargetHours)
+    fun updateWeeklyTargetHours(hours: Double) {
+        weeklyTargetHours = hours.coerceIn(0.0, 168.0)
+        prefs.putDouble(PREF_WEEKLY_TARGET, weeklyTargetHours)
     }
 
     fun updateOvertimeEnabled(enabled: Boolean) {
