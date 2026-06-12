@@ -37,6 +37,8 @@ class AppState {
 
     var launchAtLogin: Boolean by mutableStateOf(prefs.getBoolean(PREF_LAUNCH_AT_LOGIN, false))
 
+    var pdfReportDir: String by mutableStateOf(prefs.get(PREF_PDF_REPORT_DIR, "."))
+
     var dailyTargetHours: Int by mutableStateOf(prefs.getInt(PREF_DAILY_TARGET, 8))
 
     var weeklyTargetHours: Int by mutableStateOf(prefs.getInt(PREF_WEEKLY_TARGET, 40))
@@ -79,6 +81,11 @@ class AppState {
 
     fun setDarkThemeOverride(dark: Boolean) {
         isDarkTheme = dark
+    }
+
+    fun updatePdfReportDir(path: String) {
+        pdfReportDir = path.trim()
+        prefs.put(PREF_PDF_REPORT_DIR, pdfReportDir)
     }
 
     fun updateIdleDetectionEnabled(enabled: Boolean) {
@@ -229,6 +236,7 @@ class AppState {
         private const val PREF_DEFAULT_CONTEXT_TAGS = "default_context_tags"
         private const val PREF_OVERTIME_ENABLED = "overtime_enabled"
         private const val PREF_OVERTIME_START_DATE = "overtime_start_date"
+        private const val PREF_PDF_REPORT_DIR = "pdf_report_dir"
         private const val PREF_WORKDAYS = "workdays"
         private const val PREF_EXCLUDED_DATE_RANGES = "excluded_date_ranges"
         private const val PREF_ABSENCE_IO_ENABLED = "absence_io_enabled"

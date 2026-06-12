@@ -826,6 +826,51 @@ fun SettingsScreen(
             }
         }
 
+        // PDF Reports card
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(TimewDimensions.borderRadiusCard))
+                .background(colors.cardSurface)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "PDF Reports",
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.textOnCardPrimary,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "Directory where generated PDF reports will be stored",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textOnCardSecondary,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            var pdfDirText by remember(appState.pdfReportDir) {
+                mutableStateOf(appState.pdfReportDir)
+            }
+
+            OutlinedTextField(
+                value = pdfDirText,
+                onValueChange = {
+                    pdfDirText = it
+                    appState.updatePdfReportDir(it)
+                },
+                label = { Text("Directory path", color = colors.textOnCardSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = colors.textOnCardPrimary
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = colors.accent,
+                    unfocusedBorderColor = colors.borderOnCard,
+                    cursorColor = colors.accent
+                )
+            )
+        }
+
         // AI Integration card
         Column(
             modifier = Modifier

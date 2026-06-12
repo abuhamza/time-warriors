@@ -287,10 +287,12 @@ fun main() {
                             modifier = Modifier.weight(1f)
                         )
                         Screen.REPORTS -> ReportsScreen(
+                            appState = appState,
                             timelineViewModel = timelineViewModel,
                             timerViewModel = timerViewModel,
                             tagViewModel = tagViewModel,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            overtimeViewModel = overtimeViewModel
                         )
                         Screen.TAGS -> TagsScreen(
                             tagViewModel = tagViewModel,

@@ -29,6 +29,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1")
+    implementation("org.apache.pdfbox:pdfbox:2.0.30")
 
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.16")
