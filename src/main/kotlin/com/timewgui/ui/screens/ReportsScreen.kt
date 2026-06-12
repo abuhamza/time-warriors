@@ -60,6 +60,7 @@ fun ReportsScreen(
     timelineViewModel: TimelineViewModel,
     timerViewModel: com.timewgui.viewmodel.TimerViewModel,
     tagViewModel: com.timewgui.viewmodel.TagViewModel,
+    overtimeViewModel: com.timewgui.viewmodel.OvertimeViewModel,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalTimewColors.current
@@ -68,6 +69,12 @@ fun ReportsScreen(
     val tz = TimeZone.currentSystemDefault()
     var lastExportPath by remember { mutableStateOf<String?>(null) }
     var exportHighlight by remember { mutableStateOf(false) }
+
+    LaunchedEffect(appState.overtimeEnabled) {
+        if (appState.overtimeEnabled) {
+            overtimeViewModel.refresh()
+        }
+    }
 
     // Button turns green for a short time
     LaunchedEffect(exportHighlight) {
@@ -143,6 +150,34 @@ fun ReportsScreen(
         }
     }
 
+    val overtimeLines = remember(
+        appState.overtimeEnabled,
+        overtimeViewModel.entries,
+        startDate,
+        endDate
+    ) {
+        if (!appState.overtimeEnabled) {
+            emptyList()
+        } else {
+            val inRange = overtimeViewModel.entries
+                .filter { it.date >= startDate && it.date <= endDate }
+
+            if (inRange.isEmpty()) {
+                emptyList()
+            } else {
+                val worked = inRange.fold(Duration.ZERO) { acc, e -> acc + e.worked }
+                val target = inRange.fold(Duration.ZERO) { acc, e -> acc + e.target }
+                val net = inRange.fold(Duration.ZERO) { acc, e -> acc + e.overtime - e.deficit }
+
+                listOf(
+                    "Target time: ${formatReportDuration(target)}",
+                    "Worked time: ${formatReportDuration(worked)}",
+                    "Overtime balance: ${formatSignedDuration(net)}"
+                )
+            }
+        }
+    }
+
     LaunchedEffect(range) {
         timelineViewModel.fetchForRange(startDate, endDate)
     }
@@ -175,7 +210,8 @@ fun ReportsScreen(
                         endDate = endDate,
                         rows = reportLines,
                         totalLine = formatReportDuration(totalDuration),
-                        tagLines = tagLines
+                        tagLines = tagLines,
+                        overtimeLines = overtimeLines
                     )
 
                     if (file != null) {
@@ -413,4 +449,12 @@ private fun formatReportDuration(d: Duration): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (minutes == 0L) "${hours}h" else "${hours}h ${minutes}m"
+}
+
+private fun formatSignedDuration(d: Duration): String {
+    if (d == Duration.ZERO) return "0m"
+    val positive = if (d.isNegative()) -d else d
+    val base = formatReportDuration(positive)
+    val sign = if (d.isNegative()) "-" else "+"
+    return "$sign$base"
 }

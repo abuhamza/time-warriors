@@ -23,7 +23,8 @@ public class ExportPDF {
             endDate: LocalDate,
             rows: List<String>,
             totalLine: String,
-            tagLines: List<String>
+            tagLines: List<String>,
+            overtimeLines: List<String> = emptyList()
         ): File? {
             val baseDir = File(appState.pdfReportDir.ifBlank {
                 System.getProperty("user.home") ?: "."
@@ -117,6 +118,28 @@ public class ExportPDF {
                             content.showText(line)
                             content.endText()
                             y -= leading
+                        }
+
+                        // Overtime (if any lines provided)
+                        if (overtimeLines.isNotEmpty()) {
+                            y -= leading
+
+                            content.beginText()
+                            content.setFont(PDType1Font.HELVETICA_BOLD, 10f)
+                            content.newLineAtOffset(margin, y)
+                            content.showText("Overtime")
+                            content.endText()
+                            y -= leading
+
+                            content.setFont(PDType1Font.HELVETICA, 10f)
+                            for (line in overtimeLines) {
+                                if (y < margin) break
+                                content.beginText()
+                                content.newLineAtOffset(margin + 20f, y)
+                                content.showText(line)
+                                content.endText()
+                                y -= leading
+                            }
                         }
                     }
 
