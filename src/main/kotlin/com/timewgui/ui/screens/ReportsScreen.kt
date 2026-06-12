@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,10 +30,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.timewgui.domain.model.ExportPDF
 import com.timewgui.ui.theme.LocalTimewColors
 import com.timewgui.ui.theme.TimewDimensions
 import com.timewgui.ui.theme.TimewTypography
+import com.timewgui.viewmodel.AppState
 import com.timewgui.viewmodel.TimelineViewModel
+import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -52,6 +56,7 @@ sealed class ReportRange {
 
 @Composable
 fun ReportsScreen(
+    appState: AppState,
     timelineViewModel: TimelineViewModel,
     timerViewModel: com.timewgui.viewmodel.TimerViewModel,
     tagViewModel: com.timewgui.viewmodel.TagViewModel,
@@ -61,6 +66,24 @@ fun ReportsScreen(
     var range by remember { mutableStateOf<ReportRange>(ReportRange.Week) }
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     val tz = TimeZone.currentSystemDefault()
+    var lastExportPath by remember { mutableStateOf<String?>(null) }
+    var exportHighlight by remember { mutableStateOf(false) }
+
+    // Button turns green for a short time
+    LaunchedEffect(exportHighlight) {
+        if (exportHighlight) {
+            delay(2_000) // 2 seconds
+            exportHighlight = false
+        }
+    }
+
+    // Banner auto-dismiss after 10 seconds
+    LaunchedEffect(lastExportPath) {
+        if (lastExportPath != null) {
+            delay(10_000)
+            lastExportPath = null
+        }
+    }
 
     val (startDate, endDate) = remember(range, today) {
         when (range) {
@@ -94,6 +117,32 @@ fun ReportsScreen(
         reportIntervals.fold(Duration.ZERO) { acc, i -> acc + i.duration }
     }
 
+    // Tag durations (used both for UI and PDF export)
+    val tagDurations = remember(reportIntervals) {
+        val tagMap = mutableMapOf<String, Duration>()
+        reportIntervals.forEach { interval ->
+            interval.tags.forEach { tag ->
+                tagMap[tag] = (tagMap[tag] ?: Duration.ZERO) + interval.duration
+            }
+        }
+        tagMap.entries.sortedByDescending { it.value }
+    }
+
+    val reportLines = remember(reportIntervals) {
+        reportIntervals.map { interval ->
+            val dateStr = interval.start.toLocalDateTime(tz).date.toString()
+            val tagsStr = interval.tags.joinToString(", ").ifEmpty { "—" }
+            val durationStr = interval.durationFormatted
+            "$dateStr | $tagsStr | $durationStr"
+        }
+    }
+
+    val tagLines = remember(tagDurations) {
+        tagDurations.map { (tag, duration) ->
+            "$tag: ${formatReportDuration(duration)}"
+        }
+    }
+
     LaunchedEffect(range) {
         timelineViewModel.fetchForRange(startDate, endDate)
     }
@@ -105,11 +154,73 @@ fun ReportsScreen(
             .padding(TimewDimensions.sectionGap),
         verticalArrangement = Arrangement.spacedBy(TimewDimensions.sectionGap)
     ) {
-        Text(
-            text = "Reports",
-            style = MaterialTheme.typography.headlineMedium,
-            color = colors.textPrimary
-        )
+        // Header row: title on left, export button on right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Reports",
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.textPrimary
+            )
+
+            Button(
+                onClick = {
+                    val file = ExportPDF.exportReportToPdf(
+                        appState = appState,
+                        range = range,
+                        startDate = startDate,
+                        endDate = endDate,
+                        rows = reportLines,
+                        totalLine = formatReportDuration(totalDuration),
+                        tagLines = tagLines
+                    )
+
+                    if (file != null) {
+                        lastExportPath = file.absolutePath
+                        exportHighlight = true
+                    } else {
+
+                        lastExportPath = null
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (exportHighlight) colors.success else colors.accent
+                ),
+                shape = RoundedCornerShape(8.dp),
+                elevation = null
+            ) {
+                Text(
+                    text = "Export PDF",
+                    color = Color.White
+                )
+            }
+        }
+
+        // Feedback "Popup" (small Banner)
+        lastExportPath?.let { path ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(colors.cardSurface)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "PDF exported to:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textOnCardSecondary
+                )
+                Text(
+                    text = path,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textOnCardPrimary
+                )
+            }
+        }
+
 
         Row(
             modifier = Modifier
