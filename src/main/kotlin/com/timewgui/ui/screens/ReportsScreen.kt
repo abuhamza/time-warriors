@@ -137,10 +137,23 @@ fun ReportsScreen(
 
     val reportLines = remember(reportIntervals) {
         reportIntervals.map { interval ->
-            val dateStr = interval.start.toLocalDateTime(tz).date.toString()
+            val localStart = interval.start.toLocalDateTime(tz)
+            val localEnd = interval.end?.toLocalDateTime(tz)
+
+            val dateStr = localStart.date.toString()
+            val startStr = localStart.time.toString().take(5) // "HH:MM"
+            val endStr = localEnd?.time?.toString()?.take(5) ?: "…"
+
             val tagsStr = interval.tags.joinToString(", ").ifEmpty { "—" }
             val durationStr = interval.durationFormatted
-            "$dateStr | $tagsStr | $durationStr"
+
+            ExportPDF.ReportRow(
+                date = dateStr,
+                start = startStr,
+                end = endStr,
+                tags = tagsStr,
+                duration = durationStr
+            )
         }
     }
 

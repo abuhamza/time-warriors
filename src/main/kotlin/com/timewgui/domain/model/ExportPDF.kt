@@ -15,13 +15,21 @@ import java.time.temporal.IsoFields
 
 public class ExportPDF {
 
+    data class ReportRow(
+        val date: String,
+        val start: String,
+        val end: String,
+        val tags: String,
+        val duration: String
+    )
+
     companion object {
         fun exportReportToPdf(
             appState: AppState,
             range: ReportRange,
             startDate: LocalDate,
             endDate: LocalDate,
-            rows: List<String>,
+            rows: List<ReportRow>,
             totalLine: String,
             tagLines: List<String>,
             overtimeLines: List<String> = emptyList()
@@ -76,22 +84,94 @@ public class ExportPDF {
                         content.endText()
                         y -= 2 * leading
 
-                        // Header
-                        content.beginText()
+                        // Compute column positions across full width
+                        val pageWidth = page.mediaBox.width
+                        val tableWidth = pageWidth - 2 * margin
+
+                        val colDateWidth = 70f
+                        val colStartWidth = 50f
+                        val colEndWidth = 50f
+                        val colDurationWidth = 60f
+                        val colTagsWidth = tableWidth - colDateWidth - colStartWidth - colEndWidth - colDurationWidth
+
+                        val xDate = margin
+                        val xStart = xDate + colDateWidth
+                        val xEnd = xStart + colStartWidth
+                        val xTags = xEnd + colEndWidth
+                        val xDuration = xTags + colTagsWidth
+
+// Header
                         content.setFont(PDType1Font.HELVETICA_BOLD, 10f)
-                        content.newLineAtOffset(margin, y)
-                        content.showText("Date | Tags | Duration")
+
+                        content.beginText()
+                        content.newLineAtOffset(xDate, y)
+                        content.showText("Date")
                         content.endText()
+
+                        content.beginText()
+                        content.newLineAtOffset(xStart, y)
+                        content.showText("Start")
+                        content.endText()
+
+                        content.beginText()
+                        content.newLineAtOffset(xEnd, y)
+                        content.showText("End")
+                        content.endText()
+
+                        content.beginText()
+                        content.newLineAtOffset(xTags, y)
+                        content.showText("Tags")
+                        content.endText()
+
+                        content.beginText()
+                        content.newLineAtOffset(xDuration, y)
+                        content.showText("Duration")
+                        content.endText()
+
                         y -= leading
 
                         // Rows
                         content.setFont(PDType1Font.HELVETICA, 10f)
-                        for (line in rows) {
+                        var lastDate: String? = null
+
+                        for (row in rows) {
                             if (y < margin) break
+
+                            val dateToShow = if (row.date == lastDate) "" else row.date
+
+                            // Date (blank if same as previous)
+                            if (dateToShow.isNotEmpty()) {
+                                content.beginText()
+                                content.newLineAtOffset(xDate, y)
+                                content.showText(dateToShow)
+                                content.endText()
+                            }
+
+                            // Start
                             content.beginText()
-                            content.newLineAtOffset(margin, y)
-                            content.showText(line)
+                            content.newLineAtOffset(xStart, y)
+                            content.showText(row.start)
                             content.endText()
+
+                            // End
+                            content.beginText()
+                            content.newLineAtOffset(xEnd, y)
+                            content.showText(row.end)
+                            content.endText()
+
+                            // Tags
+                            content.beginText()
+                            content.newLineAtOffset(xTags, y)
+                            content.showText(row.tags)
+                            content.endText()
+
+                            // Duration
+                            content.beginText()
+                            content.newLineAtOffset(xDuration, y)
+                            content.showText(row.duration)
+                            content.endText()
+
+                            lastDate = row.date       // always update with the real date
                             y -= leading
                         }
 
